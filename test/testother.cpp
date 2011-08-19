@@ -104,6 +104,7 @@ private:
 
         TEST_CASE(incorrectLogicOperator1);
         TEST_CASE(incorrectLogicOperator2);
+        TEST_CASE(secondAlwaysTrueFalseWhenFirstTrueError);
 
         TEST_CASE(catchExceptionByValue);
 
@@ -114,7 +115,9 @@ private:
 
         TEST_CASE(clarifyCalculation);
 
-        TEST_CASE(clarifyCondition);     // if (a = b() < 0)
+        TEST_CASE(clarifyCondition1);     // if (a = b() < 0)
+        TEST_CASE(clarifyCondition2);     // if (a & b == c)
+        TEST_CASE(clarifyCondition3);     // if (! a & b)
 
         TEST_CASE(incorrectStringCompare);
 
@@ -1696,6 +1699,12 @@ private:
               "    func(x);\n"
               "}");
         ASSERT_EQUALS("", errout.str());
+
+        // ticket #3001 - false positive
+        check("void foo(int x) {\n"
+              "    x = x ? x : 0;\n"
+              "}");
+        ASSERT_EQUALS("", errout.str());
     }
 
     void testScanf1()
@@ -2313,6 +2322,121 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    void secondAlwaysTrueFalseWhenFirstTrueError()
+    {
+        check("void f(int x) {\n"
+              "    if (x > 5 && x != 1)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x != 1 is always true.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (x > 5 && x != 6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x > 5) && (x != 1))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x != 1 is always true.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x > 5) && (x != 6))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (5 < x && x != 1)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x != 1 is always true.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (5 < x && x != 6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 < x) && (x != 1))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x != 1 is always true.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 < x) && (x != 6))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (x > 5 && x == 1)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x == 1 is always false.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (x > 5 && x == 6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x > 5) && (x == 1))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x == 1 is always false.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x > 5) && (x == 6))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (5 < x && x == 1)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x == 1 is always false.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (5 < x && x == 6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 < x) && (x == 1))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (style) When x is greater than 5, the comparison x == 1 is always false.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 < x) && (x == 6))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+    }
+
     void catchExceptionByValue()
     {
         check("void f() {\n"
@@ -2623,12 +2747,62 @@ private:
     }
 
     // clarify conditions with = and comparison
-    void clarifyCondition()
+    void clarifyCondition1()
     {
         check("void f() {\n"
               "    if (x = b() < 0) {}\n"
               "}");
         ASSERT_EQUALS("[test.cpp:2]: (style) Suspicious condition (assignment+comparison), it can be clarified with parentheses\n", errout.str());
+
+        check("void f(int i) {\n"
+              "    for (i = 0; i < 10; i++) {}\n"
+              "}");
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f() {\n"
+              "    if (x = a<int>()) {}\n"
+              "}");
+        ASSERT_EQUALS("", errout.str());
+
+    }
+
+    // clarify conditions with bitwise operator and comparison
+    void clarifyCondition2()
+    {
+        check("void f() {\n"
+              "    if (x & 2 == 2) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Suspicious condition (bitwise operator + comparison), it can be clarified with parentheses\n", errout.str());
+
+        check("void f() {\n"
+              "    if (a & fred1.x == fred2.y) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Suspicious condition (bitwise operator + comparison), it can be clarified with parentheses\n", errout.str());
+    }
+
+    // clarify condition that uses ! operator and then bitwise operator
+    void clarifyCondition3()
+    {
+        check("void f(int w) {\n"
+              "    if(!w & 0x8000) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean result is used in bitwise operation. Clarify expression with parentheses\n", errout.str());
+
+        check("void f() {\n"
+              "    if (x == foo() & 2) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean result is used in bitwise operation. Clarify expression with parentheses\n", errout.str());
+
+        check("void f(std::list<int> &ints) { }");
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f() { A<x &> a; }");
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f() {\n"
+              "    if (result != (char *)&inline_result) { }\n"
+              "}");
+        ASSERT_EQUALS("", errout.str());
     }
 
     void incorrectStringCompare()

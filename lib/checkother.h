@@ -54,8 +54,6 @@ public:
         checkOther.warningOldStylePointerCast();
         checkOther.checkUnsignedDivision();
         checkOther.checkCharVariable();
-        checkOther.functionVariableUsage();
-        checkOther.checkStructMemberUsage();
         checkOther.strPlusChar();
         checkOther.sizeofsizeof();
         checkOther.sizeofCalculation();
@@ -112,7 +110,7 @@ public:
 
     /** @brief Suspicious condition (assignment+comparison) */
     void clarifyCondition();
-    void clarifyConditionError(const Token *tok);
+    void clarifyConditionError(const Token *tok, bool assign, bool boolop);
 
     /** @brief Are there C-style pointer casts in a c++ file? */
     void warningOldStylePointerCast();
@@ -129,21 +127,11 @@ public:
     /** @brief %Check for unsigned division */
     void checkUnsignedDivision();
 
-    /** @brief %Check for unused function variables */
-    void functionVariableUsage();
-    void unusedVariableError(const Token *tok, const std::string &varname);
-    void allocatedButUnusedVariableError(const Token *tok, const std::string &varname);
-    void unreadVariableError(const Token *tok, const std::string &varname);
-    void unassignedVariableError(const Token *tok, const std::string &varname);
-
     /** @brief %Check scope of variables */
     void checkVariableScope();
 
     /** @brief %Check for constant function parameter */
     void checkConstantFunctionParameter();
-
-    /** @brief %Check that all struct members are used */
-    void checkStructMemberUsage();
 
     /** @brief Using char variable as array index / as operand in bit operation */
     void checkCharVariable();
@@ -231,9 +219,6 @@ public:
     /** @brief %Check for duplicate break statements in a switch or loop */
     void checkDuplicateBreak();
 
-    /** @brief check if token is a record type without side effects */
-    bool isRecordTypeWithoutSideEffects(const Token *tok);
-
     /** @brief assigning bool to pointer */
     void checkAssignBoolToPointer();
 
@@ -245,14 +230,12 @@ public:
     void dangerousUsageStrtolError(const Token *tok);
     void sprintfOverlappingDataError(const Token *tok, const std::string &varname);
     void udivError(const Token *tok);
-    void unusedStructMemberError(const Token *tok, const std::string &structname, const std::string &varname);
     void passedByValueError(const Token *tok, const std::string &parname);
     void constStatementError(const Token *tok, const std::string &type);
     void charArrayIndexError(const Token *tok);
     void charBitOpError(const Token *tok);
     void variableScopeError(const Token *tok, const std::string &varname);
-    void conditionAlwaysTrueFalse(const Token *tok, const std::string &truefalse);
-    void strPlusChar(const Token *tok);
+    void strPlusCharError(const Token *tok);
     void zerodivError(const Token *tok);
     void mathfunctionCallError(const Token *tok, const unsigned int numParam = 1);
     void fflushOnInputStreamError(const Token *tok, const std::string &varname);
@@ -261,6 +244,7 @@ public:
     void selfAssignmentError(const Token *tok, const std::string &varname);
     void assignmentInAssertError(const Token *tok, const std::string &varname);
     void incorrectLogicOperatorError(const Token *tok, bool always);
+    void secondAlwaysTrueFalseWhenFirstTrueError(const Token *tok, const std::string &truefalse);
     void misusedScopeObjectError(const Token *tok, const std::string &varname);
     void catchExceptionByValueError(const Token *tok);
     void memsetZeroBytesError(const Token *tok, const std::string &varname);
@@ -272,11 +256,11 @@ public:
     void duplicateIfError(const Token *tok1, const Token *tok2);
     void duplicateBranchError(const Token *tok1, const Token *tok2);
     void duplicateExpressionError(const Token *tok1, const Token *tok2, const std::string &op);
-    void alwaysTrueFalseStringCompare(const Token *tok, const std::string& str1, const std::string& str2);
+    void alwaysTrueFalseStringCompareError(const Token *tok, const std::string& str1, const std::string& str2);
     void duplicateBreakError(const Token *tok);
     void assignBoolToPointerError(const Token *tok);
-    void unsignedLessThanZero(const Token *tok, const std::string &varname);
-    void unsignedPositive(const Token *tok, const std::string &varname);
+    void unsignedLessThanZeroError(const Token *tok, const std::string &varname);
+    void unsignedPositiveError(const Token *tok, const std::string &varname);
 
     void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings)
     {
@@ -296,14 +280,12 @@ public:
         // style/warning
         c.cstyleCastError(0);
         c.dangerousUsageStrtolError(0);
-        c.unusedStructMemberError(0, "structname", "variable");
         c.passedByValueError(0, "parametername");
         c.constStatementError(0, "type");
         c.charArrayIndexError(0);
         c.charBitOpError(0);
         c.variableScopeError(0, "varname");
-        c.conditionAlwaysTrueFalse(0, "true/false");
-        c.strPlusChar(0);
+        c.strPlusCharError(0);
         c.sizeofsizeofError(0);
         c.sizeofCalculationError(0);
         c.redundantAssignmentInSwitchError(0, "varname");
@@ -312,24 +294,21 @@ public:
         c.assignmentInAssertError(0, "varname");
         c.invalidScanfError(0);
         c.incorrectLogicOperatorError(0, true);
-        c.unusedVariableError(0, "varname");
-        c.allocatedButUnusedVariableError(0, "varname");
-        c.unreadVariableError(0, "varname");
-        c.unassignedVariableError(0, "varname");
+        c.secondAlwaysTrueFalseWhenFirstTrueError(0, "when first comparison is true, the 2nd comparison is always true");
         c.catchExceptionByValueError(0);
         c.memsetZeroBytesError(0, "varname");
         c.clarifyCalculationError(0, "+");
-        c.clarifyConditionError(0);
+        c.clarifyConditionError(0, true, false);
         c.incorrectStringCompareError(0, "substr", "\"Hello World\"", "12");
         c.incrementBooleanError(0);
         c.comparisonOfBoolWithIntError(0, "varname");
         c.duplicateIfError(0, 0);
         c.duplicateBranchError(0, 0);
         c.duplicateExpressionError(0, 0, "&&");
-        c.alwaysTrueFalseStringCompare(0, "str1", "str2");
+        c.alwaysTrueFalseStringCompareError(0, "str1", "str2");
         c.duplicateBreakError(0);
-        c.unsignedLessThanZero(0, "varname");
-        c.unsignedPositive(0, "varname");
+        c.unsignedLessThanZeroError(0, "varname");
+        c.unsignedPositiveError(0, "varname");
     }
 
     std::string myName() const
@@ -358,7 +337,6 @@ public:
                "* bad usage of the function 'strtol'\n"
                "* [[CheckUnsignedDivision|unsigned division]]\n"
                "* Dangerous usage of 'scanf'\n"
-               "* unused struct member\n"
                "* passing parameter by value\n"
                "* [[IncompleteStatement|Incomplete statement]]\n"
                "* [[charvar|check how signed char variables are used]]\n"
@@ -405,6 +383,8 @@ private:
 
         return varname;
     }
+
+    bool code_is_c() const;
 };
 /// @}
 //---------------------------------------------------------------------------
