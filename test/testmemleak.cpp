@@ -276,6 +276,8 @@ private:
         // * It is ok to take the address to deallocated memory
         // * It is not ok to dereference a pointer to deallocated memory
         TEST_CASE(dealloc_use);
+        TEST_CASE(dealloc_use_2);
+        TEST_CASE(dealloc_use_3);
 
         // free a free'd pointer
         TEST_CASE(freefree1);
@@ -486,6 +488,8 @@ private:
         ASSERT_EQUALS(";;use;;", getcode("char *s; x = {1,s};", "s"));
         ASSERT_EQUALS(";{};;alloc;;use;", getcode("struct Foo { }; Foo *p; p = malloc(10); const Foo *q; q = p;", "p"));
         ASSERT_EQUALS(";;alloc;use;", getcode("Fred *fred; p.setFred(fred = new Fred);", "fred"));
+        ASSERT_EQUALS(";;use;", getcode("struct AB *ab; f(ab->a);", "ab"));
+        ASSERT_EQUALS(";;use;", getcode("struct AB *ab; ab = pop(ab);", "ab"));
 
         // non-use..
         ASSERT_EQUALS(";;", getcode("char *s; s = s + 1;", "s"));
@@ -595,11 +599,14 @@ private:
             , "getservbyname", "getservbyport", "glob", "index", "inet_addr", "inet_aton", "inet_network"
             , "initgroups", "link", "mblen", "mbstowcs", "mbtowc", "mkdir", "mkfifo", "mknod", "obstack_printf"
             , "obstack_vprintf", "opendir", "parse_printf_format", "pathconf", "popen", "psignal", "putenv"
-            , "readlink", "regcomp", "strxfrm", "wordexp", "sizeof"
+            , "readlink", "regcomp", "strxfrm", "wordexp", "sizeof", "strtok"
         };
 
         for (unsigned int i = 0; i < (sizeof(call_func_white_list) / sizeof(char *)); ++i)
-            ASSERT_EQUALS(true, CheckMemoryLeakInFunction::test_white_list(call_func_white_list[i]));
+        {
+            bool ret = CheckMemoryLeakInFunction::test_white_list(call_func_white_list[i]);
+            ASSERT_EQUALS("", ret ? "" : call_func_white_list[i]);
+        }
     }
 
 
@@ -2962,6 +2969,34 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    void dealloc_use_2()
+    {
+        // #3041 - assigning pointer when it's used
+        check("void f(char *s) {\n"
+              "    free(s);\n"
+              "    strcpy(a, s=b());\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void dealloc_use_3()
+    {
+        check("void foo()\n"
+              "{\n"
+              "    char *str = malloc(10);\n"
+              "    realloc(str, 0);\n"
+              "    str[10] = 0;\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:5]: (error) Dereferencing 'str' after it is deallocated / released\n", errout.str());
+
+        check("void foo()\n"
+              "{\n"
+              "    char *str = realloc(0, 10);\n"
+              "    realloc(str, 0);\n"
+              "    str[10] = 0;\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:5]: (error) Dereferencing 'str' after it is deallocated / released\n", errout.str());
+    }
 
     void freefree1()
     {
@@ -4983,6 +5018,7 @@ private:
         TEST_CASE(function1);   // Deallocating in function
         TEST_CASE(function2);   // #2848: Taking address in function
         TEST_CASE(function3);   // #3024: kernel list
+        TEST_CASE(function4);   // #3038: Deallocating in function
 
         // Handle if-else
         TEST_CASE(ifelse);
@@ -5184,6 +5220,18 @@ private:
               "  struct ABC *abc = kmalloc(100);\n"
               "  abc.a = (char *) kmalloc(10);\n"
               "  list_add_tail(&abc->list, head);\n"
+              "}\n", "test.c");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    // #3038: deallocating in function
+    void function4()
+    {
+        check("void a(char *p) { char *x = p; free(x); }\n"
+              "void b() {\n"
+              "  struct ABC abc;\n"
+              "  abc.a = (char *) malloc(10);\n"
+              "  a(abc.a);\n"
               "}\n", "test.c");
         ASSERT_EQUALS("", errout.str());
     }

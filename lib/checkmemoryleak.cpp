@@ -41,10 +41,12 @@ CheckMemoryLeakStructMember instance3;
 CheckMemoryLeakNoVar instance4;
 }
 
-
-// This list needs to be alphabetically sorted so we can run bsearch on it.
-// This list contains function names whith const parameters e.g.: atof(const char *)
-// Reference: http://www.aquaphoenix.com/ref/gnu_c_library/libc_492.html#SEC492
+/** List of functions that can be ignored when searching for memory leaks.
+ * These functions don't take the address of the given pointer
+ * This list needs to be alphabetically sorted so we can run bsearch on it.
+ * This list contains function names whith const parameters e.g.: atof(const char *)
+ * Reference: http://www.aquaphoenix.com/ref/gnu_c_library/libc_492.html#SEC492
+ */
 static const char * const call_func_white_list[] =
 {
     "_open", "_wopen", "access", "adjtime", "asctime", "asctime_r", "asprintf", "assert"
@@ -69,7 +71,7 @@ static const char * const call_func_white_list[] =
     , "setbuf", "setbuffer", "sethostname", "setlinebuf", "setlocale" ,"setvbuf", "sizeof" ,"snprintf", "sprintf", "sscanf"
     , "stat", "stpcpy", "strcasecmp", "strcat", "strchr", "strcmp", "strcoll"
     , "strcpy", "strcspn", "strdup", "stricmp", "strlen", "strncasecmp", "strncat", "strncmp"
-    , "strncpy", "strpbrk","strrchr", "strspn", "strstr", "strtod", "strtol", "strtoul", "strxfrm", "switch"
+    , "strncpy", "strpbrk","strrchr", "strspn", "strstr", "strtod", "strtok", "strtol", "strtoul", "strxfrm", "switch"
     , "symlink", "sync_file_range", "system", "telldir", "tempnam", "time", "typeid", "unlink"
     , "utime", "utimes", "vasprintf", "vfprintf", "vfscanf", "vprintf"
     , "vscanf", "vsnprintf", "vsprintf", "vsscanf", "while", "wordexp","write", "writev"
@@ -247,7 +249,8 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::getDeallocationType(const Token *tok
         return NewArray;
 
     if (Token::Match(tok, "free|kfree ( %varid% ) ;", varid) ||
-        Token::Match(tok, "free|kfree ( %varid% -", varid))
+        Token::Match(tok, "free|kfree ( %varid% -", varid) ||
+        Token::Match(tok, "realloc ( %varid% , 0 ) ;", varid))
         return Malloc;
 
     if (Token::Match(tok, "g_free ( %varid% ) ;", varid) ||
@@ -285,7 +288,8 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::getDeallocationType(const Token *tok
         return NewArray;
 
     if (Token::simpleMatch(tok, std::string("free ( " + varname + " ) ;").c_str()) ||
-        Token::simpleMatch(tok, std::string("kfree ( " + varname + " ) ;").c_str()))
+        Token::simpleMatch(tok, std::string("kfree ( " + varname + " ) ;").c_str()) ||
+        Token::simpleMatch(tok, std::string("realloc ( " + varname + " , 0 ) ;").c_str()))
         return Malloc;
 
     if (Token::simpleMatch(tok, std::string("g_free ( " + varname + " ) ;").c_str()))
@@ -697,7 +701,14 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
             if (tok2->str() == "(" || tok2->str() == ")")
                 break;
             if (tok2->varId() == varid)
-                return (tok->strAt(-1)==".") ? "use" : "use_";
+            {
+                if (tok->strAt(-1) == ".")
+                    return "use";
+                else if (tok2->strAt(1) == "=")
+                    return "assign";
+                else
+                    return"use_";
+            }
         }
 
         return 0;
@@ -841,6 +852,8 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
                     return ret;
                 }
             }
+            if (varid > 0 && Token::Match(tok, "[(,] %varid% . %var% [,)]", varid))
+                return "use";
         }
     }
     return NULL;
@@ -1104,6 +1117,11 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
 
                         if (Token::Match(tok2, "[=+(,] %varid%", varid))
                         {
+                            if (!rhs && Token::Match(tok2, "[(,]"))
+                            {
+                                addtoken(&rettail, tok, "use");
+                                addtoken(&rettail, tok, ";");
+                            }
                             rhs = true;
                         }
                     }
@@ -3200,8 +3218,7 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Token * const vartok
                             break;
                         }
 
-                        // Linux kernel list
-                        if (Token::Match(tok4, "[(,] & %varid% . %var% [,)]", structid))
+                        if (Token::Match(tok4, "[(,] &| %varid% . %var% [,)]", structid))
                         {
                             /** @todo check if the function deallocates the memory */
                             deallocated = true;

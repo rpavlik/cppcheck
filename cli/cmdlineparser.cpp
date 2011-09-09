@@ -280,6 +280,12 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
                 PrintMessage(errmsg);
                 return false;
             }
+            // when "style" is enabled, also enable "performance" and "portability"
+            else if (strstr(argv[i]+9, "style"))
+            {
+                _settings->addEnabled("performance");
+                _settings->addEnabled("portability");
+            }
         }
 
         // --error-exitcode=1
@@ -663,7 +669,13 @@ void CmdLineParser::PrintHelp()
               "                          * all\n"
               "                                  Enable all checks\n"
               "                          * style\n"
-              "                                  Check coding style\n"
+              "                                  Enable all coding style checks. All messages\n"
+              "                                  with the severities 'style', 'performance'\n"
+              "                                  and 'portability' are enabled.\n"
+              "                          * performance\n"
+              "                                  Enable performance messages\n"
+              "                          * portability\n"
+              "                                  Enable portability messages\n"
               "                          * information\n"
               "                                  Enable information messages\n"
               "                          * unusedFunction\n"

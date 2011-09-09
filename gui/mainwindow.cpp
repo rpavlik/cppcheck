@@ -147,6 +147,7 @@ MainWindow::MainWindow() :
         connect(mRecentProjectActs[i], SIGNAL(triggered()),
                 this, SLOT(OpenRecentProject()));
     }
+    mRecentProjectActs[MaxRecentProjects] = NULL; // The separator
     mUI.mActionProjectMRU->setVisible(false);
     UpdateMRUMenuItems();
 }
@@ -214,10 +215,10 @@ void MainWindow::LoadSettings()
     bool succeeded = mApplications->LoadSettings();
     if (!succeeded)
     {
-        QString msg = tr("There was a problem with loading the editor application settings.\n\n"
-                         "This is probably because the settings were changed between the Cppcheck versions. "
-                         "Please check (and fix) the editor application settings, otherwise the editor "
-                         "program might not start correctly.");
+        const QString msg = tr("There was a problem with loading the editor application settings.\n\n"
+                               "This is probably because the settings were changed between the Cppcheck versions. "
+                               "Please check (and fix) the editor application settings, otherwise the editor "
+                               "program might not start correctly.");
         QMessageBox msgBox(QMessageBox::Warning,
                            tr("Cppcheck"),
                            msg,
@@ -269,7 +270,7 @@ void MainWindow::DoCheckFiles(const QStringList &files)
     FileList pathList;
     pathList.AddPathList(files);
     if (mProject)
-        pathList.AddIngoreList(mProject->GetProjectFile()->GetIgnoredPaths());
+        pathList.AddExcludeList(mProject->GetProjectFile()->GetExcludedPaths());
     QStringList fileNames = pathList.GetFileList();
 
     mUI.mResults->Clear();
@@ -448,13 +449,6 @@ Settings MainWindow::GetCppcheckSettings()
 {
     Settings result;
 
-    QString globalIncludes = mSettings->value(SETTINGS_GLOBAL_INCLUDE_PATHS).toString();
-    if (!globalIncludes.isEmpty())
-    {
-        QStringList includes = globalIncludes.split(";");
-        AddIncludeDirs(includes, result);
-    }
-
     // If project file loaded, read settings from it
     if (mProject)
     {
@@ -472,7 +466,19 @@ Settings MainWindow::GetCppcheckSettings()
         }
     }
 
+    // Include directories (and files) are searched in listed order.
+    // Global include directories must be added AFTER the per project include
+    // directories so per project include directories can override global ones.
+    const QString globalIncludes = mSettings->value(SETTINGS_GLOBAL_INCLUDE_PATHS).toString();
+    if (!globalIncludes.isEmpty())
+    {
+        QStringList includes = globalIncludes.split(";");
+        AddIncludeDirs(includes, result);
+    }
+
     result.addEnabled("style");
+    result.addEnabled("performance");
+    result.addEnabled("portability");
     result.addEnabled("information");
     result.addEnabled("missingInclude");
     result.debug = false;
@@ -567,7 +573,7 @@ void MainWindow::ClearResults()
 void MainWindow::OpenXML()
 {
     QString selectedFilter;
-    QString filter(tr("XML files (*.xml)"));
+    const QString filter(tr("XML files (*.xml)"));
     QString selectedFile = QFileDialog::getOpenFileName(this,
                            tr("Open the report file"),
                            QString(),
@@ -641,8 +647,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
     else
     {
-        QString text(tr("Checking is running.\n\n" \
-                        "Do you want to stop the checking and exit Cppcheck?."));
+        const QString text(tr("Checking is running.\n\n" \
+                              "Do you want to stop the checking and exit Cppcheck?."));
 
         QMessageBox msg(QMessageBox::Warning,
                         tr("Cppcheck"),
@@ -703,7 +709,7 @@ void MainWindow::ShowAuthors()
 void MainWindow::Save()
 {
     QString selectedFilter;
-    QString filter(tr("XML files version 2 (*.xml);;XML files version 1 (*.xml);;Text files (*.txt);;CSV files (*.csv)"));
+    const QString filter(tr("XML files version 2 (*.xml);;XML files version 1 (*.xml);;Text files (*.txt);;CSV files (*.csv)"));
     QString selectedFile = QFileDialog::getSaveFileName(this,
                            tr("Save the report file"),
                            QString(),
@@ -858,8 +864,16 @@ void MainWindow::LoadProjectFile(const QString &filePath)
     mUI.mActionEditProjectFile->setEnabled(true);
     delete mProject;
     mProject = new Project(filePath, this);
-    mProject->Open();
-    QString rootpath = mProject->GetProjectFile()->GetRootPath();
+    CheckProject(mProject);
+}
+
+void MainWindow::CheckProject(Project *project)
+{
+    if (!project->IsOpen())
+        project->Open();
+
+    QFileInfo inf(project->Filename());
+    const QString rootpath = project->GetProjectFile()->GetRootPath();
 
     // If the root path is not given or is not "current dir", use project
     // file's location directory as root path
@@ -868,7 +882,7 @@ void MainWindow::LoadProjectFile(const QString &filePath)
     else
         mCurrentDirectory = rootpath;
 
-    QStringList paths = mProject->GetProjectFile()->GetCheckPaths();
+    QStringList paths = project->GetProjectFile()->GetCheckPaths();
 
     // If paths not given then check the root path (which may be the project
     // file's location, see above). This is to keep the compatibility with
@@ -913,6 +927,7 @@ void MainWindow::NewProjectFile()
         mProject->Edit();
     }
     AddProjectMRU(filepath);
+    CheckProject(mProject);
 }
 
 void MainWindow::CloseProjectFile()
@@ -1012,9 +1027,9 @@ void MainWindow::OpenRecentProject()
         }
         else
         {
-            QString text(tr("The project file\n\n%1\n\n could not be found!\n\n"
-                            "Do you want to remove the file from the recently "
-                            "used projects -list?").arg(project));
+            const QString text(tr("The project file\n\n%1\n\n could not be found!\n\n"
+                                  "Do you want to remove the file from the recently "
+                                  "used projects -list?").arg(project));
 
             QMessageBox msg(QMessageBox::Warning,
                             tr("Cppcheck"),
@@ -1035,7 +1050,7 @@ void MainWindow::OpenRecentProject()
 
 void MainWindow::UpdateMRUMenuItems()
 {
-    for (int i = 0; i < MaxRecentProjects; i++)
+    for (int i = 0; i < MaxRecentProjects + 1; i++)
     {
         if (mRecentProjectActs[i] != NULL)
             mUI.mMenuFile->removeAction(mRecentProjectActs[i]);
@@ -1054,7 +1069,7 @@ void MainWindow::UpdateMRUMenuItems()
     }
 
     if (numRecentProjects > 1)
-        mUI.mMenuFile->insertSeparator(mUI.mActionProjectMRU);
+        mRecentProjectActs[numRecentProjects] = mUI.mMenuFile->insertSeparator(mUI.mActionProjectMRU);
 }
 
 void MainWindow::AddProjectMRU(const QString &project)

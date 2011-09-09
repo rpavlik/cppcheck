@@ -66,6 +66,7 @@ private:
         TEST_CASE(uninitVar19); // ticket #2792
         TEST_CASE(uninitVar20); // ticket #2867
         TEST_CASE(uninitVar21); // ticket #2947
+        TEST_CASE(uninitVar22); // ticket #3043
         TEST_CASE(uninitVarEnum);
         TEST_CASE(uninitVarStream);
         TEST_CASE(uninitVarTypedef);
@@ -106,6 +107,7 @@ private:
 
         TEST_CASE(operatorEq1);
         TEST_CASE(operatorEq2);
+        TEST_CASE(operatorEq3); // ticket #3051
         TEST_CASE(operatorEqRetRefThis1);
         TEST_CASE(operatorEqRetRefThis2); // ticket #1323
         TEST_CASE(operatorEqRetRefThis3); // ticket #1405
@@ -178,6 +180,9 @@ private:
         TEST_CASE(const48); // ticket #2672
         TEST_CASE(const49); // ticket #2795
         TEST_CASE(const50); // ticket #2943
+        TEST_CASE(const51); // ticket #3040
+        TEST_CASE(const52); // ticket #3049
+        TEST_CASE(const53); // ticket #3052
         TEST_CASE(assigningPointerToPointerIsNotAConstOperation);
         TEST_CASE(assigningArrayElementIsNotAConstOperation);
         TEST_CASE(constoperator1);  // operator< can often be const
@@ -300,6 +305,16 @@ private:
                        "    B & operator=(const A&);\n"
                        "};\n");
         ASSERT_EQUALS("[test.cpp:4]: (style) 'A::operator=' should return 'A &'\n", errout.str());
+    }
+
+    void operatorEq3() // ticket #3051
+    {
+        checkOpertorEq("class A\n"
+                       "{\n"
+                       "public:\n"
+                       "    A * operator=(const A*);\n"
+                       "};\n");
+        ASSERT_EQUALS("", errout.str());
     }
 
     // Check that operator Equal returns reference to this
@@ -2259,6 +2274,38 @@ private:
                        "    a[x::y] = 0;\n"
                        "}\n");
         ASSERT_EQUALS("", errout.str());
+    }
+
+    void uninitVar22() // ticket #3043
+    {
+        checkUninitVar("class Fred {\n"
+                       "  public:\n"
+                       "    Fred & operator=(const Fred &);\n"
+                       "    virtual Fred & clone(const Fred & other);\n"
+                       "    int x;\n"
+                       "};\n"
+                       "Fred & Fred::operator=(const Fred & other) {\n"
+                       "    return clone(other);\n"
+                       "}\n"
+                       "Fred & Fred::clone(const Fred & other) {\n"
+                       "    x = 0;\n"
+                       "    return *this;\n"
+                       "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+        checkUninitVar("class Fred {\n"
+                       "  public:\n"
+                       "    Fred & operator=(const Fred &);\n"
+                       "    virtual Fred & clone(const Fred & other);\n"
+                       "    int x;\n"
+                       "};\n"
+                       "Fred & Fred::operator=(const Fred & other) {\n"
+                       "    return clone(other);\n"
+                       "}\n"
+                       "Fred & Fred::clone(const Fred & other) {\n"
+                       "    return *this;\n"
+                       "}\n");
+        ASSERT_EQUALS("[test.cpp:7]: (warning) Member variable 'Fred::x' is not assigned a value in 'Fred::operator='\n", errout.str());
     }
 
     void uninitVarArray1()
@@ -5627,6 +5674,61 @@ private:
                    "        if (mEmptyView) return;\n"
                    "}\n");
 
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void const51() // ticket 3040
+    {
+        checkConst("class PSIPTable {\n"
+                   "public:\n"
+                   "    PSIPTable() : _pesdata(0) { }\n"
+                   "    const unsigned char* pesdata() const { return _pesdata; }\n"
+                   "    unsigned char* pesdata()             { return _pesdata; }\n"
+                   "    void SetSection(uint num) { pesdata()[6] = num; }\n"
+                   "private:\n"
+                   "    unsigned char *_pesdata;\n"
+                   "};\n");
+        ASSERT_EQUALS("", errout.str());
+
+        checkConst("class PESPacket {\n"
+                   "public:\n"
+                   "    PESPacket() : _pesdata(0) { }\n"
+                   "    const unsigned char* pesdata() const { return _pesdata; }\n"
+                   "    unsigned char* pesdata()             { return _pesdata; }\n"
+                   "private:\n"
+                   "    unsigned char *_pesdata;\n"
+                   "};\n"
+                   "class PSIPTable : public PESPacket\n"
+                   "{\n"
+                   "public:\n"
+                   "    void SetSection(uint num) { pesdata()[6] = num; }\n"
+                   "};\n");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void const52() // ticket 3049
+    {
+        checkConst("class A {\n"
+                   "  public:\n"
+                   "    A() : foo(false) {};\n"
+                   "    virtual bool One(bool b = false) { foo = b; return false; }\n"
+                   "  private:\n"
+                   "    bool foo;\n"
+                   "};\n"
+                   "class B : public A {\n"
+                   "  public:\n"
+                   "    B() {};\n"
+                   "    bool One(bool b = false) { return false; }\n"
+                   "};\n");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void const53() // ticket 3052
+    {
+        checkConst("class Example {\n"
+                   "  public:\n"
+                   "    void Clear(void) { Example tmp; (*this) = tmp; }\n"
+                   "};\n");
         ASSERT_EQUALS("", errout.str());
     }
 

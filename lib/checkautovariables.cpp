@@ -107,7 +107,7 @@ void CheckAutoVariables::autoVariables()
             {
                 const Variable * var = symbolDatabase->getVariableFromVarId(tok->tokAt(5)->varId());
                 if (var && (!var->isClass() || var->type()))
-                    errorAutoVariableAssignment(tok, false);
+                    errorAutoVariableAssignment(tok->next(), false);
             }
             else if (Token::Match(tok, "[;{}] %var% . %var% = & %var%"))
             {
@@ -118,8 +118,8 @@ void CheckAutoVariables::autoVariables()
                     if (var1 && var1->isArgument() && Token::Match(var1->nameToken()->tokAt(-2), "%type% *"))
                     {
                         const Variable * var2 = symbolDatabase->getVariableFromVarId(tok->tokAt(6)->varId());
-                        if (var2 && var2->isLocal() && !var2->isStatic())
-                            errorAutoVariableAssignment(tok, _settings->inconclusive);
+                        if (var2 && var2->isLocal() && !var2->isStatic() && !Token::simpleMatch(var2->typeEndToken(), "*"))
+                            errorAutoVariableAssignment(tok->next(), _settings->inconclusive);
                     }
                 }
                 tok = tok->tokAt(6);
@@ -134,7 +134,7 @@ void CheckAutoVariables::autoVariables()
                     {
                         const Variable * var2 = symbolDatabase->getVariableFromVarId(tok->tokAt(5)->varId());
                         if (var2 && var2->isLocal() && var2->isArray() && !var2->isStatic())
-                            errorAutoVariableAssignment(tok, _settings->inconclusive);
+                            errorAutoVariableAssignment(tok->next(), _settings->inconclusive);
                     }
                 }
                 tok = tok->tokAt(5);
@@ -146,13 +146,13 @@ void CheckAutoVariables::autoVariables()
                 {
                     const Variable * var2 = symbolDatabase->getVariableFromVarId(tok->tokAt(4)->varId());
                     if (var2 && var2->isLocal() && var2->isArray() && !var2->isStatic())
-                        errorAutoVariableAssignment(tok, false);
+                        errorAutoVariableAssignment(tok->next(), false);
                 }
                 tok = tok->tokAt(4);
             }
             else if (Token::Match(tok, "[;{}] %var% [ %any% ] = & %var%") && errorAv(tok->tokAt(1), tok->tokAt(7)))
             {
-                errorAutoVariableAssignment(tok, false);
+                errorAutoVariableAssignment(tok->next(), false);
             }
             // Critical return
             else if (Token::Match(tok, "return & %var% ;") && isAutoVar(tok->tokAt(2)->varId()))
@@ -164,6 +164,12 @@ void CheckAutoVariables::autoVariables()
                      isAutoVarArray(tok->tokAt(2)->varId()))
             {
                 errorReturnAddressToAutoVariable(tok);
+            }
+            else if (Token::Match(tok, "return & %var% ;") && tok->tokAt(2)->varId())
+            {
+                const Variable * var1 = symbolDatabase->getVariableFromVarId(tok->tokAt(2)->varId());
+                if (var1 && var1->isArgument() && var1->typeEndToken()->str() != "&")
+                    errorReturnAddressOfFunctionParameter(tok, tok->strAt(2));
             }
             // Invalid pointer deallocation
             else if (Token::Match(tok, "free ( %var% ) ;") && isAutoVarArray(tok->tokAt(2)->varId()))
@@ -262,6 +268,14 @@ void CheckAutoVariables::errorAutoVariableAssignment(const Token *tok, bool inco
                                 "the function ends. The address is invalid after the function ends and it "
                                 "might 'leak' from the function through the parameter.");
     }
+}
+
+void CheckAutoVariables::errorReturnAddressOfFunctionParameter(const Token *tok, const std::string &varname)
+{
+    reportError(tok, Severity::error, "returnAddressOfFunctionParameter",
+                "Return the address of function parameter '" + varname + "'\n"
+                "Address of the function parameter '" + varname + "' is invalid after the function exits. "
+                "Function parameters are created into the stack. When the function exits the stack is deleted.");
 }
 
 //---------------------------------------------------------------------------

@@ -87,6 +87,12 @@ void CheckOther::clarifyCalculation()
             else
                 continue;
 
+            if (cond && cond->str() == "!")
+                cond = cond->previous();
+
+            if (!cond)
+                continue;
+
             // calculation
             if (!cond->isArithmeticalOp())
                 continue;
@@ -218,6 +224,38 @@ void CheckOther::clarifyConditionError(const Token *tok, bool assign, bool boolo
                 Severity::style,
                 "clarifyCondition",
                 errmsg);
+}
+
+//---------------------------------------------------------------------------
+// if (bool & bool) -> if (bool && bool)
+// if (bool | bool) -> if (bool || bool)
+//---------------------------------------------------------------------------
+void CheckOther::checkBitwiseOnBoolean()
+{
+    if (!_settings->isEnabled("style"))
+        return;
+
+    for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
+    {
+        if (Token::Match(tok, "(|.|return %var% [&|]"))
+        {
+            if (tok->next()->varId())
+            {
+                const Variable *var = _tokenizer->getSymbolDatabase()->getVariableFromVarId(tok->next()->varId());
+                if (var && (var->typeStartToken() == var->typeEndToken()) &&
+                    var->typeStartToken()->str() == "bool")
+                {
+                    bitwiseOnBooleanError(tok->next(), tok->next()->str(), tok->strAt(2) == "&" ? "&&" : "||");
+                }
+            }
+        }
+    }
+}
+
+void CheckOther::bitwiseOnBooleanError(const Token *tok, const std::string &varname, const std::string &op)
+{
+    reportError(tok, Severity::style, "bitwiseOnBoolean",
+                "Boolean variable '" + varname + "' is used in bitwise operation. Did you mean " + op + " ?");
 }
 
 //---------------------------------------------------------------------------
@@ -1544,7 +1582,7 @@ void CheckOther::variableScopeError(const Token *tok, const std::string &varname
 //---------------------------------------------------------------------------
 void CheckOther::checkConstantFunctionParameter()
 {
-    if (!_settings->isEnabled("style"))
+    if (!_settings->isEnabled("performance"))
         return;
 
     const SymbolDatabase * const symbolDatabase = _tokenizer->getSymbolDatabase();
@@ -2336,7 +2374,7 @@ void CheckOther::duplicateExpressionError(const Token *tok1, const Token *tok2, 
 //---------------------------------------------------------------------------
 void CheckOther::checkAlwaysTrueOrFalseStringCompare()
 {
-    if (!_settings->isEnabled("style"))
+    if (!_settings->isEnabled("style") && !_settings->isEnabled("performance"))
         return;
 
     const char pattern1[] = "strcmp|stricmp|strcmpi|strcasecmp|wcscmp ( %str% , %str% )";
@@ -2371,7 +2409,7 @@ void CheckOther::alwaysTrueFalseStringCompareError(const Token *tok, const std::
                     "If the purpose is to compare these two strings, the comparison is unnecessary. "
                     "If the strings are supposed to be different, then there is a bug somewhere.");
     }
-    else
+    else if (_settings->isEnabled("performance"))
     {
         reportError(tok, Severity::performance, "staticStringCompare",
                     "Unnecessary comparison of static strings.\n"
@@ -2522,6 +2560,6 @@ void CheckOther::unsignedPositiveError(const Token *tok, const std::string &varn
 {
     reportError(tok, Severity::style, "unsignedPositive",
                 "Checking if unsigned variable '" + varname + "' is positive is always true.\n"
-                "An unsigned variable will never alwayw be positive so it is either pointless or "
+                "An unsigned variable will always be positive so it is either pointless or "
                 "an error to check if it is.");
 }

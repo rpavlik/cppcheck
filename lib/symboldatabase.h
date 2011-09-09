@@ -46,6 +46,8 @@ enum AccessControl { Public, Protected, Private, Global, Namespace, Argument, Lo
  */
 struct Dimension
 {
+    Dimension() : start(NULL), end(NULL), num(0) { }
+
     const Token *start;  // size start token
     const Token *end;    // size end token
     MathLib::bigint num; // dimension length when size is a number, 0 if not known
@@ -518,6 +520,13 @@ public:
      * @return pointer to last token
      */
     const Token *checkVariable(const Token *tok, AccessControl varaccess);
+
+    /**
+     * @brief get variable from name
+     * @param varname name of variable
+     * @return pointer to variable
+     */
+    const Variable *getVariable(const std::string &varname) const;
 
 private:
     /**

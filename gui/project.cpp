@@ -47,9 +47,19 @@ Project::~Project()
     delete mPFile;
 }
 
+QString Project::Filename() const
+{
+    return mFilename;
+}
+
 void Project::SetFilename(const QString &filename)
 {
     mFilename = filename;
+}
+
+bool Project::IsOpen() const
+{
+    return mPFile != NULL;
 }
 
 bool Project::Open()
@@ -85,7 +95,7 @@ void Project::Edit()
     dlg.SetDefines(defines);
     QStringList paths = mPFile->GetCheckPaths();
     dlg.SetPaths(paths);
-    QStringList ignorepaths = mPFile->GetIgnoredPaths();
+    QStringList ignorepaths = mPFile->GetExcludedPaths();
     dlg.SetIgnorePaths(ignorepaths);
 
     int rv = dlg.exec();
@@ -100,7 +110,7 @@ void Project::Edit()
         QStringList paths = dlg.GetPaths();
         mPFile->SetCheckPaths(paths);
         QStringList ignorepaths = dlg.GetIgnorePaths();
-        mPFile->SetIgnoredPaths(ignorepaths);
+        mPFile->SetExcludedPaths(ignorepaths);
 
         bool writeSuccess = mPFile->Write();
         if (!writeSuccess)

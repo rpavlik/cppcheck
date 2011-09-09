@@ -41,6 +41,7 @@ private:
         TEST_CASE(zeroDiv2);
         TEST_CASE(zeroDiv3);
         TEST_CASE(zeroDiv4);
+        TEST_CASE(zeroDiv5);
 
         TEST_CASE(sprintf1);        // Dangerous usage of sprintf
         TEST_CASE(sprintf2);
@@ -118,6 +119,7 @@ private:
         TEST_CASE(clarifyCondition1);     // if (a = b() < 0)
         TEST_CASE(clarifyCondition2);     // if (a & b == c)
         TEST_CASE(clarifyCondition3);     // if (! a & b)
+        TEST_CASE(bitwiseOnBoolean);      // if (bool & bool)
 
         TEST_CASE(incorrectStringCompare);
 
@@ -159,6 +161,7 @@ private:
         checkOther.checkDuplicateIf();
         checkOther.checkDuplicateBranch();
         checkOther.checkDuplicateExpression();
+        checkOther.checkBitwiseOnBoolean();
 
         // Simplify token list..
         tokenizer.simplifyTokenList();
@@ -210,6 +213,7 @@ private:
 
         Settings settings;
         settings.addEnabled("style");
+        settings.addEnabled("performance");
         settings.experimental = true;
 
         // Preprocess file..
@@ -352,6 +356,15 @@ private:
               "   div_t divresult = div (1,0.5);\n"
               "}\n");
         ASSERT_EQUALS("", errout.str());
+    }
+
+    void zeroDiv5()
+    {
+        check("void f()\n"
+              "{ { {\n"
+              "   long a = b / 0;\n"
+              "} } }\n");
+        ASSERT_EQUALS("[test.cpp:3]: (error) Division by zero\n", errout.str());
     }
 
 
@@ -828,7 +841,7 @@ private:
         errout.str("");
 
         Settings settings;
-        settings.addEnabled("style");
+        settings.addEnabled("performance");
 
         Tokenizer tokenizer(&settings, this);
         std::istringstream istr(code);
@@ -2636,7 +2649,7 @@ private:
              );
         ASSERT_EQUALS("", errout.str());
 
-        // ticket 2495
+        // ticket #2495
         check("void f() {\n"
               "    static float col[][3]={\n"
               "      {1,0,0},\n"
@@ -2651,14 +2664,14 @@ private:
              );
         ASSERT_EQUALS("", errout.str());
 
-        // ticket 155
+        // ticket #155
         check("void f() {\n"
               "    char buff1[1024*64],buff2[sizeof(buff1)*2];\n"
               "}\n"
              );
         ASSERT_EQUALS("", errout.str());
 
-        // ticket 2510
+        // ticket #2510
         check("void f( int a[], int b) {\n"
               "    std::cout << sizeof(a) / sizeof(int) << std::endl;\n"
               "}\n"
@@ -2666,7 +2679,7 @@ private:
         ASSERT_EQUALS("[test.cpp:2]: (error) Using sizeof for array given as "
                       "function argument returns the size of pointer.\n", errout.str());
 
-        // ticket 2510
+        // ticket #2510
         check("void f( int a[3] , int b[2] ) {\n"
               "    std::cout << sizeof(a) / sizeof(int) << std::endl;\n"
               "}\n"
@@ -2674,7 +2687,7 @@ private:
         ASSERT_EQUALS("[test.cpp:2]: (error) Using sizeof for array given as "
                       "function argument returns the size of pointer.\n", errout.str());
 
-        // ticket 2510
+        // ticket #2510
         check("void f() {\n"
               "    char buff1[1024*64],buff2[sizeof(buff1)*(2+1)];\n"
               "}\n"
@@ -2744,6 +2757,12 @@ private:
               "    int ab = a - b ? 2 : 3;\n"
               "}");
         ASSERT_EQUALS("[test.cpp:2]: (style) Clarify calculation precedence for - and ?\n", errout.str());
+
+        // ticket #195
+        check("int f(int x, int y) {\n"
+              "    return x >> ! y ? 8 : 2;\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Clarify calculation precedence for >> and ?\n", errout.str());
     }
 
     // clarify conditions with = and comparison
@@ -2805,6 +2824,63 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    void bitwiseOnBoolean() // 3062
+    {
+        check("void f(_Bool a, _Bool b) {\n"
+              "    if(a & b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean && ?\n", errout.str());
+
+        check("void f(_Bool a, _Bool b) {\n"
+              "    if(a | b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean || ?\n", errout.str());
+
+        check("void f(bool a, bool b) {\n"
+              "    if(a & b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean && ?\n", errout.str());
+
+        check("void f(bool a, bool b) {\n"
+              "    if(a & !b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean && ?\n", errout.str());
+
+        check("void f(bool a, bool b) {\n"
+              "    if(a | b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean || ?\n", errout.str());
+
+        check("void f(bool a, bool b) {\n"
+              "    if(a | !b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean || ?\n", errout.str());
+
+        check("bool a, b;\n"
+              "void f() {\n"
+              "    if(a & b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean && ?\n", errout.str());
+
+        check("bool a, b;\n"
+              "void f() {\n"
+              "    if(a & !b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean && ?\n", errout.str());
+
+        check("bool a, b;\n"
+              "void f() {\n"
+              "    if(a | b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean || ?\n", errout.str());
+
+        check("bool a, b;\n"
+              "void f() {\n"
+              "    if(a | !b) {}\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Boolean variable 'a' is used in bitwise operation. Did you mean || ?\n", errout.str());
+    }
+
     void incorrectStringCompare()
     {
         check("int f() {\n"
@@ -2832,6 +2908,10 @@ private:
     void incrementBoolean()
     {
         check("bool bValue = true;\n"
+              "bValue++;\n");
+        ASSERT_EQUALS("[test.cpp:2]: (style) The use of a variable of type bool with the ++ postfix operator is always true and deprecated by the C++ Standard.\n", errout.str());
+
+        check("_Bool bValue = true;\n"
               "bValue++;\n");
         ASSERT_EQUALS("[test.cpp:2]: (style) The use of a variable of type bool with the ++ postfix operator is always true and deprecated by the C++ Standard.\n", errout.str());
 

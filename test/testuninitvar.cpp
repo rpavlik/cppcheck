@@ -45,6 +45,7 @@ private:
         TEST_CASE(uninitvar_switch);    // handling switch
         TEST_CASE(uninitvar_references); // references
         TEST_CASE(uninitvar_strncpy);   // strncpy doesn't always 0-terminate
+        TEST_CASE(uninitvar_memset);    // not 0-terminated
         TEST_CASE(uninitvar_func);      // analyse functions
         TEST_CASE(func_uninit_var);     // analyse function calls for: 'int a(int x) { return x+x; }'
         TEST_CASE(func_uninit_pointer); // analyse function calls for: 'void a(int *p) { *p = 0; }'
@@ -152,6 +153,13 @@ private:
                        "{\n"
                        "    int x;\n"
                        "    int *y = &x;\n"
+                       "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+        checkUninitVar("void foo()\n"
+                       "{\n"
+                       "    int *x;\n"
+                       "    int *&y = x;\n"
                        "}\n");
         ASSERT_EQUALS("", errout.str());
 
@@ -312,6 +320,13 @@ private:
                        "    int ret;\n"
                        "    std::cin >> ret;\n"
                        "    return ret;\n"
+                       "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+        checkUninitVar("int a(FArchive &arc) {\n"   // #3060 (initialization through operator<<)
+                       "    int *p;\n"
+                       "    arc << p;\n"
+                       "    return *p;\n"
                        "}\n");
         ASSERT_EQUALS("", errout.str());
 
@@ -1060,6 +1075,12 @@ private:
                        "        char *b = (a+2) & 7;\n"
                        "}\n");
         ASSERT_EQUALS("", errout.str());
+
+        checkUninitVar("void f() {\n"   // Ticket #3050
+                       "    char a[2];\n"
+                       "    printf(\"%s\", a);\n"
+                       "}");
+        ASSERT_EQUALS("[test.cpp:3]: (error) Uninitialized variable: a\n", errout.str());
     }
 
     // alloc..
@@ -1299,6 +1320,16 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    // initialization with memset (not 0-terminating string)..
+    void uninitvar_memset()
+    {
+        checkUninitVar("void f() {\n"
+                       "    char a[20];\n"
+                       "    memset(a, 'a', 20);\n"
+                       "    strcat(a, s);\n"
+                       "}\n");
+        ASSERT_EQUALS("[test.cpp:4]: (error) Dangerous usage of 'a' (not 0-terminated)\n", errout.str());
+    }
 
     std::string analyseFunctions(const char code[])
     {

@@ -46,7 +46,7 @@ static bool isint(const Variable *var)
 
 void Check64BitPortability::pointerassignment()
 {
-    if (!_settings->isEnabled("style"))
+    if (!_settings->isEnabled("portability"))
         return;
 
     for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
@@ -58,7 +58,7 @@ void Check64BitPortability::pointerassignment()
             const Variable *var1(symbolDatabase->getVariableFromVarId(tok->tokAt(1)->varId()));
             const Variable *var2(symbolDatabase->getVariableFromVarId(tok->tokAt(3)->varId()));
 
-            if (isaddr(var1) && isint(var2))
+            if (isaddr(var1) && isint(var2) && tok->strAt(4) != "+")
                 assignmentIntegerToAddressError(tok->next());
 
             else if (isint(var1) && isaddr(var2) && !tok->tokAt(3)->isPointerCompare())

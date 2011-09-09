@@ -269,6 +269,7 @@ private:
         TEST_CASE(simplifyTypedef101); // ticket #3003 (segmentation fault)
         TEST_CASE(simplifyTypedef102); // ticket #3004
         TEST_CASE(simplifyTypedef103); // ticket #3007
+        TEST_CASE(simplifyTypedef104); // ticket #3070
 
         TEST_CASE(simplifyTypedefFunction1);
         TEST_CASE(simplifyTypedefFunction2); // ticket #1685
@@ -375,6 +376,11 @@ private:
         TEST_CASE(simplifyVarDecl1); // ticket # 2682 segmentation fault
         TEST_CASE(simplifyVarDecl2); // ticket # 2834 segmentation fault
         TEST_CASE(return_strncat); // ticket # 2860 Returning value of strncat() reported as memory leak
+
+        // #3069 : for loop with 1 iteration
+        // for (x=0;x<1;x++) { .. }
+        // The for is redundant
+        TEST_CASE(removeRedundantFor);
     }
 
     std::string tok(const char code[], bool simplify = true)
@@ -382,6 +388,7 @@ private:
         errout.str("");
 
         Settings settings;
+        settings.addEnabled("portability");
         Tokenizer tokenizer(&settings, this);
 
         std::istringstream istr(code);
@@ -5418,6 +5425,13 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    void simplifyTypedef104() // ticket #3070
+    {
+        const char code[] = "typedef int (*in_func) (void FAR *, unsigned char FAR * FAR *);\n";
+        ASSERT_EQUALS(";", sizeof_(code));
+        ASSERT_EQUALS("", errout.str());
+    }
+
     void simplifyTypedefFunction1()
     {
         {
@@ -7375,6 +7389,27 @@ private:
                       "strncat ( temp , \"a\" , 1 ) ; "
                       "return temp ; "
                       "}", tok(code, true));
+    }
+
+    void removeRedundantFor() // ticket #3069
+    {
+        {
+            const char code[] = "void f() {"
+                                "    for(x=0;x<1;x++) {"
+                                "        y = 1;"
+                                "    }"
+                                "}";
+            ASSERT_EQUALS("void f ( ) { { y = 1 ; } x = 1 ; }", tok(code, true));
+        }
+
+        {
+            const char code[] = "void f() {"
+                                "    for(x=0;x<1;x++) {"
+                                "        y = 1 + x;"
+                                "    }"
+                                "}";
+            ASSERT_EQUALS("void f ( ) { x = 0 ; { y = 1 + x ; } x = 1 ; }", tok(code, true));
+        }
     }
 };
 

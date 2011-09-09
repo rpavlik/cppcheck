@@ -591,7 +591,7 @@ SymbolDatabase::SymbolDatabase(const Tokenizer *tokenizer, const Settings *setti
                 }
                 else if (tok->str() == "{")
                 {
-                    if (!Token::Match(tok->previous(), "=|,|{"))
+                    if (!Token::Match(tok->previous(), "=|,"))
                     {
                         scopeList.push_back(Scope(this, tok, scope, Scope::eUnconditional, tok));
                         scope = &scopeList.back();
@@ -803,6 +803,34 @@ SymbolDatabase::SymbolDatabase(const Tokenizer *tokenizer, const Settings *setti
         }
     }
 
+    // search for member variables of record types and add them to the variable list
+    for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
+    {
+        if (Token::Match(tok, ". %var%") && tok->next()->varId())
+        {
+            unsigned int varid1 = tok->next()->varId();
+            if (_variableList[varid1] == NULL)
+            {
+                if (Token::Match(tok->previous(), "%var%") && tok->previous()->varId())
+                {
+                    unsigned int varid2 = tok->previous()->varId();
+                    if (_variableList[varid2])
+                    {
+                        // get the variable type from the class/struct
+                        const Scope * type = _variableList[varid2]->type();
+
+                        if (type)
+                        {
+                            const Variable *var = type->getVariable(tok->next()->str());
+                            if (var)
+                                _variableList[varid1] = _variableList[var->varId()];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /* set all unknown array dimensions that are set by a variable to the maximum size of that variable type */
     for (size_t i = 1; i <= _tokenizer->varIdCount(); i++)
     {
@@ -813,7 +841,8 @@ SymbolDatabase::SymbolDatabase(const Tokenizer *tokenizer, const Settings *setti
             for (size_t j = 0; j < _variableList[i]->dimensions().size(); j++)
             {
                 // check for a single token dimension that is a variable
-                if ((_variableList[i]->dimensions()[j].start == _variableList[i]->dimensions()[j].end) &&
+                if (_variableList[i]->dimensions()[j].start &&
+                    (_variableList[i]->dimensions()[j].start == _variableList[i]->dimensions()[j].end) &&
                     _variableList[i]->dimensions()[j].start->varId())
                 {
                     Dimension &dimension = const_cast<Dimension &>(_variableList[i]->dimensions()[j]);
@@ -919,7 +948,12 @@ bool SymbolDatabase::argsMatch(const Scope *scope, const Token *first, const Tok
 
         // skip default value assignment
         else if (first->next()->str() == "=")
+        {
             first = first->tokAt(2);
+
+            if (second->next()->str() == "=")
+                second = second->tokAt(2);
+        }
 
         // definition missing variable name
         else if (first->next()->str() == "," && second->next()->str() != ",")
@@ -1256,7 +1290,7 @@ const Token *SymbolDatabase::initBaseInfo(Scope *scope, const Token *tok)
             }
 
             base.name += tok2->str();
-            base.scope = 0;
+            base.scope = NULL;
 
             // add unhandled templates
             if (tok2->next() && tok2->next()->str() == "<")
@@ -1319,14 +1353,17 @@ bool SymbolDatabase::arrayDimensions(std::vector<Dimension> &dimensions, const T
 
     const Token *dim = tok;
 
-    while (dim && dim->next() && dim->str() == "[" && dim->next()->str() != "]")
+    while (dim && dim->next() && dim->str() == "[")
     {
         Dimension dimension;
-        dimension.num = 0;
-        dimension.start = dim->next();
-        dimension.end = dim->link()->previous();
-        if (dimension.start == dimension.end && dimension.start->isNumber())
-            dimension.num = MathLib::toLongNumber(dimension.start->str());
+        // check for empty array dimension []
+        if (dim->next()->str() != "]")
+        {
+            dimension.start = dim->next();
+            dimension.end = dim->link()->previous();
+            if (dimension.start == dimension.end && dimension.start->isNumber())
+                dimension.num = MathLib::toLongNumber(dimension.start->str());
+        }
         dimensions.push_back(dimension);
         dim = dim->link()->next();
         isArray = true;
@@ -1383,6 +1420,11 @@ void Function::addArguments(const SymbolDatabase *symbolDatabase, const Function
                 else if (tok->str() == "[")
                 {
                     isArrayVar = symbolDatabase->arrayDimensions(dimensions, tok);
+
+                    // skip array dimension(s)
+                    tok = tok->link();
+                    while (tok->next()->str() == "[")
+                        tok = tok->next()->link();
                 }
                 else if (tok->str() == "<")
                 {
@@ -1768,6 +1810,19 @@ const Token *Scope::checkVariable(const Token *tok, AccessControl varaccess)
     }
 
     return tok;
+}
+
+const Variable *Scope::getVariable(const std::string &varname) const
+{
+    std::list<Variable>::const_iterator iter;
+
+    for (iter = varlist.begin(); iter != varlist.end(); ++iter)
+    {
+        if (iter->name() == varname)
+            return &*iter;
+    }
+
+    return NULL;
 }
 
 const Token* skipScopeIdentifiers(const Token* tok)

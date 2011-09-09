@@ -53,6 +53,7 @@ private:
         TEST_CASE(tokenize17);  // #2759
         TEST_CASE(tokenize18);  // tokenize "(X&&Y)" into "( X && Y )" instead of "( X & & Y )"
         TEST_CASE(tokenize19);  // #3006 (segmentation fault)
+        TEST_CASE(tokenize20);  // replace C99 _Bool => bool
 
         // don't freak out when the syntax is wrong
         TEST_CASE(wrong_syntax);
@@ -135,6 +136,7 @@ private:
         TEST_CASE(simplifyKnownVariables40);
         TEST_CASE(simplifyKnownVariables41);    // p=&x; if (p) ..
         TEST_CASE(simplifyKnownVariables42);    // ticket #2031 - known string value after strcpy
+        TEST_CASE(simplifyKnownVariables43);
         TEST_CASE(simplifyKnownVariablesBailOutAssign1);
         TEST_CASE(simplifyKnownVariablesBailOutAssign2);
         TEST_CASE(simplifyKnownVariablesBailOutFor1);
@@ -575,6 +577,11 @@ private:
     void tokenize19() // #3006 (segmentation fault)
     {
         tokenizeAndStringify("x < () <");
+    }
+
+    void tokenize20() // replace C99 _Bool => bool
+    {
+        ASSERT_EQUALS("bool a ; a = true ;", tokenizeAndStringify("_Bool a = true;"));
     }
 
     void wrong_syntax()
@@ -2154,6 +2161,33 @@ private:
             const char expected[] = "void f ( char * p , char * q ) {"
                                     " strcpy ( p , \"abc\" ) ;"
                                     " q = p ; "
+                                    "}";
+            ASSERT_EQUALS(expected, tokenizeAndStringify(code, true));
+        }
+    }
+
+    void simplifyKnownVariables43()
+    {
+        {
+            const char code[] = "void f() {\n"
+                                "    int a, *p; p = &a;\n"
+                                "    { int a = *p; }\n"
+                                "}";
+            const char expected[] = "void f ( ) {\n"
+                                    "int a ; int * p ; p = & a ;\n"
+                                    "{ int a ; a = * p ; }\n"
+                                    "}";
+            ASSERT_EQUALS(expected, tokenizeAndStringify(code, true));
+        }
+
+        {
+            const char code[] = "void f() {\n"
+                                "    int *a, **p; p = &a;\n"
+                                "    { int *a = *p; }\n"
+                                "}";
+            const char expected[] = "void f ( ) {\n"
+                                    "int * a ; int * * p ; p = & a ;\n"
+                                    "{ int * a ; a = * p ; }\n"
                                     "}";
             ASSERT_EQUALS(expected, tokenizeAndStringify(code, true));
         }
@@ -5537,7 +5571,14 @@ private:
                              "    void valueChanged(int newValue); "
                              "private: "
                              "    int m_value; "
-                             "};";
+                             "}; "
+                             "void Counter::setValue(int value) "
+                             "{ "
+                             "    if (value != m_value) { "
+                             "        m_value = value; "
+                             "        emit valueChanged(value); "
+                             "    } "
+                             "}";
 
         const char result1 [] = "class Counter : public QObject "
                                 "{ "
@@ -5550,7 +5591,14 @@ private:
                                 "void valueChanged ( int newValue ) ; "
                                 "private: "
                                 "int m_value ; "
-                                "} ;";
+                                "} ; "
+                                "void Counter :: setValue ( int value ) "
+                                "{ "
+                                "if ( value != m_value ) { "
+                                "m_value = value ; "
+                                "valueChanged ( value ) ; "
+                                "} "
+                                "}";
 
         ASSERT_EQUALS(result1, tokenizeAndStringify(code1,false));
 
@@ -5566,7 +5614,14 @@ private:
                              "    void valueChanged(int newValue); "
                              "private: "
                              "    int m_value; "
-                             "};";
+                             "};"
+                             "void Counter::setValue(int value) "
+                             "{ "
+                             "    if (value != m_value) { "
+                             "        m_value = value; "
+                             "        emit valueChanged(value); "
+                             "    } "
+                             "}";
 
         const char result2 [] = "class Counter : public QObject "
                                 "{ "
@@ -5579,7 +5634,14 @@ private:
                                 "void valueChanged ( int newValue ) ; "
                                 "private: "
                                 "int m_value ; "
-                                "} ;";
+                                "} ; "
+                                "void Counter :: setValue ( int value ) "
+                                "{ "
+                                "if ( value != m_value ) { "
+                                "m_value = value ; "
+                                "valueChanged ( value ) ; "
+                                "} "
+                                "}";
 
         ASSERT_EQUALS(result2, tokenizeAndStringify(code2,false));
     }

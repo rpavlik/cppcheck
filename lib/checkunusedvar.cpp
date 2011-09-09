@@ -1144,8 +1144,9 @@ void CheckUnusedVar::checkFunctionVariableUsage()
                 variables.readAll(tok->next()->varId());
 
             // assignment
-            else if (Token::Match(tok, "*| (| ++|--| %var% ++|--| )| =") ||
-                     Token::Match(tok, "*| ( const| %type% *| ) %var% ="))
+            else if (!Token::Match(tok->tokAt(-2), "[;{}.] %var% (") &&
+                     (Token::Match(tok, "*| (| ++|--| %var% ++|--| )| =") ||
+                      Token::Match(tok, "*| ( const| %type% *| ) %var% =")))
             {
                 bool dereference = false;
                 bool pre = false;
@@ -1204,8 +1205,15 @@ void CheckUnusedVar::checkFunctionVariableUsage()
 
                         if (start->strAt(2) == "new")
                         {
+                            const Token *type = start->tokAt(3);
+
+                            // skip nothrow
+                            if (Token::Match(type, "( nothrow )") ||
+                                Token::Match(type, "( std :: nothrow )"))
+                                type = type->link()->next();
+
                             // is it a user defined type?
-                            if (!start->tokAt(3)->isStandardType())
+                            if (!type->isStandardType())
                             {
                                 if (!isRecordTypeWithoutSideEffects(start))
                                     allocate = false;

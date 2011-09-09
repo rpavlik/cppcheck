@@ -73,6 +73,7 @@ private:
         TEST_CASE(testautovar4); // ticket #2928
         TEST_CASE(testautovar5); // ticket #2926
         TEST_CASE(testautovar6); // ticket #2931
+        TEST_CASE(testautovar7); // ticket #3066
         TEST_CASE(testautovar_array1);
         TEST_CASE(testautovar_array2);
         TEST_CASE(testautovar_return1);
@@ -98,6 +99,8 @@ private:
 
         // global namespace
         TEST_CASE(testglobalnamespace);
+
+        TEST_CASE(returnParameterAddress);
     }
 
 
@@ -109,7 +112,7 @@ private:
               "    int num = 2;\n"
               "    *res = &num;\n"
               "}");
-        ASSERT_EQUALS("[test.cpp:3]: (error) Assigning address of local auto-variable to a function parameter.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (error) Assigning address of local auto-variable to a function parameter.\n", errout.str());
 
         check("void func1(int **res)\n"
               "{\n"
@@ -136,7 +139,7 @@ private:
               "    int num = 2;\n"
               "    *res = &num;\n"
               "}");
-        ASSERT_EQUALS("[test.cpp:6]: (error) Assigning address of local auto-variable to a function parameter.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7]: (error) Assigning address of local auto-variable to a function parameter.\n", errout.str());
 
         check("class Fred {\n"
               "    void func1(int **res);\n"
@@ -166,7 +169,7 @@ private:
               "    int x[100];\n"
               "    *p = x;\n"
               "}");
-        ASSERT_EQUALS("[test.cpp:3]: (error) Assigning address of local auto-variable to a function parameter.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (error) Assigning address of local auto-variable to a function parameter.\n", errout.str());
     }
 
     void testautovar4() // ticket #2928
@@ -193,7 +196,7 @@ private:
               "    char a;\n"
               "    ab->a = &a;\n"
               "}", true);
-        ASSERT_EQUALS("[test.cpp:3]: (error) Inconclusive: Assigning address of local auto-variable to a function parameter.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (error) Inconclusive: Assigning address of local auto-variable to a function parameter.\n", errout.str());
     }
 
     void testautovar6() // ticket #2931
@@ -210,7 +213,18 @@ private:
               "    char a[10];\n"
               "    x->str = a;\n"
               "}", true);
-        ASSERT_EQUALS("[test.cpp:3]: (error) Inconclusive: Assigning address of local auto-variable to a function parameter.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (error) Inconclusive: Assigning address of local auto-variable to a function parameter.\n", errout.str());
+    }
+
+    void testautovar7() // ticket #3066
+    {
+        check("struct txt_scrollpane_s * TXT_NewScrollPane(struct txt_widget_s * target)\n"
+              "{\n"
+              "    struct txt_scrollpane_s * scrollpane;\n"
+              "    target->parent = &scrollpane->widget;\n"
+              "    return scrollpane;\n"
+              "}", false);
+        ASSERT_EQUALS("", errout.str());
     }
 
     void testautovar_array1()
@@ -560,6 +574,30 @@ private:
               "      pNum = apNum;\n"
               "   }\n"
               "}");
+
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void returnParameterAddress()
+    {
+        check("int* foo(int y)\n"
+              "{\n"
+              "  return &y;\n"
+              "}\n");
+
+        ASSERT_EQUALS("[test.cpp:3]: (error) Return the address of function parameter 'y'\n", errout.str());
+
+        check("int ** foo(int * y)\n"
+              "{\n"
+              "  return &y;\n"
+              "}\n");
+
+        ASSERT_EQUALS("[test.cpp:3]: (error) Return the address of function parameter 'y'\n", errout.str());
+
+        check("const int * foo(const int & y)\n"
+              "{\n"
+              "  return &y;\n"
+              "}\n");
 
         ASSERT_EQUALS("", errout.str());
     }

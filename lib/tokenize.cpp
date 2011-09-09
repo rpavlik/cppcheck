@@ -145,6 +145,10 @@ void Tokenizer::addtoken(const char str[], const unsigned int lineno, const unsi
     {
         str2 << std::strtoul(str + 2, NULL, 16);
     }
+    else if (strncmp(str, "_Bool", 5) == 0)
+    {
+        str2 << "bool";
+    }
     else
     {
         str2 << str;
@@ -1147,7 +1151,7 @@ void Tokenizer::simplifyTypedef()
             typeStart = tok->next();
             offset = 1;
 
-            while (Token::Match(tok->tokAt(offset), "const|signed|unsigned|struct|enum") ||
+            while (Token::Match(tok->tokAt(offset), "const|signed|unsigned|struct|enum %type%") ||
                    (tok->tokAt(offset + 1) && tok->tokAt(offset + 1)->isStandardType()))
                 offset++;
 
@@ -4755,6 +4759,9 @@ bool Tokenizer::simplifyTokenList()
         modified |= simplifyCalculations();
     }
 
+    // simplify redundant for
+    removeRedundantFor();
+
     // Remove redundant parentheses in return..
     for (Token *tok = _tokens; tok; tok = tok->next())
     {
@@ -5002,6 +5009,105 @@ bool Tokenizer::removeReduntantConditions()
     }
 
     return ret;
+}
+
+void Tokenizer::removeRedundantFor()
+{
+    for (Token *tok = _tokens; tok; tok = tok->next())
+    {
+        if (Token::Match(tok, "[;{}] for ( %var% = %num% ; %var% < %num% ; ++| %var% ++| ) {"))
+        {
+            // Same variable name..
+            const std::string varname(tok->tokAt(3)->str());
+            const unsigned int varid(tok->tokAt(3)->varId());
+            if (varname != tok->tokAt(7)->str())
+                continue;
+            const Token *vartok = tok->tokAt(11);
+            if (vartok->str() == "++")
+                vartok = vartok->next();
+            if (varname != vartok->str())
+                continue;
+
+            // Check that the difference of the numeric values is 1
+            const MathLib::bigint num1(MathLib::toLongNumber(tok->strAt(5)));
+            const MathLib::bigint num2(MathLib::toLongNumber(tok->strAt(9)));
+            if (num1 + 1 != num2)
+                continue;
+
+            // check how loop variable is used in loop..
+            bool read = false;
+            bool write = false;
+            unsigned int indentlevel = 0;
+            for (const Token *tok2 = tok->tokAt(2)->link(); tok2; tok2 = tok2->next())
+            {
+                if (tok2->str() == "{")
+                    ++indentlevel;
+                else if (tok2->str() == "}")
+                {
+                    if (indentlevel <= 1)
+                        break;
+                    --indentlevel;
+                }
+
+                if (tok2->str() == varname)
+                {
+                    if (tok2->previous()->isArithmeticalOp() &&
+                        tok2->next() &&
+                        (tok2->next()->isArithmeticalOp() || tok2->next()->str() == ";"))
+                    {
+                        read = true;
+                    }
+                    else
+                    {
+                        read = write = true;
+                        break;
+                    }
+                }
+            }
+
+            // Simplify loop if loop variable isn't written
+            if (!write)
+            {
+                // remove "for ("
+                tok->deleteNext();
+                tok->deleteNext();
+
+                // If loop variable is read then keep assignment before
+                // loop body..
+                if (read)
+                {
+                    // goto ";"
+                    tok = tok->tokAt(4);
+                }
+                else
+                {
+                    // remove "x = 0 ;"
+                    tok->deleteNext();
+                    tok->deleteNext();
+                    tok->deleteNext();
+                    tok->deleteNext();
+                }
+
+                // remove "x < 1 ; x ++ )"
+                tok->deleteNext();
+                tok->deleteNext();
+                tok->deleteNext();
+                tok->deleteNext();
+                tok->deleteNext();
+                tok->deleteNext();
+                tok->deleteNext();
+
+                // Add assignment after the loop body so the loop variable
+                // get the correct end value
+                Token *tok2 = tok->next()->link();
+                tok2->insertToken(";");
+                tok2->insertToken(MathLib::toString(num2));
+                tok2->insertToken("=");
+                tok2->insertToken(varname);
+                tok2->next()->varId(varid);
+            }
+        }
+    }
 }
 
 
@@ -7072,6 +7178,42 @@ bool Tokenizer::simplifyKnownVariablesSimplify(Token **tok2, Token *tok3, unsign
             }
         }
 
+        // Stop if there is a pointer alias and a shadow variable is
+        // declared in an inner scope (#3058)
+        if (valueIsPointer && tok3->varId() > 0 &&
+            tok3->previous() && (tok3->previous()->isName() || tok3->previous()->str() == "*") &&
+            valueToken->str() == "&" &&
+            valueToken->next() &&
+            valueToken->next()->isName() &&
+            tok3->str() == valueToken->next()->str() &&
+            tok3->varId() > valueToken->next()->varId())
+        {
+            // more checking if this is a variable declaration
+            bool decl = true;
+            for (const Token *tok4 = tok3->previous(); tok4; tok4 = tok4->previous())
+            {
+                if (Token::Match(tok4, "[;{}]"))
+                    break;
+
+                else if (tok4->isName())
+                {
+                    if (tok4->varId() > 0)
+                    {
+                        decl = false;
+                        break;
+                    }
+                }
+
+                else if (!Token::Match(tok4, "[&*]"))
+                {
+                    decl = false;
+                    break;
+                }
+            }
+            if (decl)
+                break;
+        }
+
         // Stop if label is found
         if (Token::Match(tok3, "; %type% : ;"))
             break;
@@ -7765,6 +7907,7 @@ bool Tokenizer::simplifyCalculations()
                     tok->str(result);
                     tok->deleteNext();
                     tok->deleteNext();
+                    ret = true;
                 }
             }
 
@@ -9970,7 +10113,13 @@ void Tokenizer::simplifyQtSignalsSlots()
 {
     for (Token *tok = _tokens; tok; tok = tok->next())
     {
-        if (!Token::Match(tok, "class %var% :"))
+        // check for emit which can be outside of class
+        if (Token::Match(tok, "emit|Q_EMIT %var% (") &&
+            Token::simpleMatch(tok->tokAt(2)->link(), ") ;"))
+        {
+            tok->deleteThis();
+        }
+        else if (!Token::Match(tok, "class %var% :"))
             continue;
 
         if (tok->previous() && tok->previous()->str() == "enum")
@@ -10013,6 +10162,11 @@ void Tokenizer::simplifyQtSignalsSlots()
             {
                 tok2 = tok2->next();
                 tok2->str("protected:");
+                tok2->deleteNext();
+            }
+            else if (Token::Match(tok2->next(), "emit|Q_EMIT %var% (") &&
+                     Token::simpleMatch(tok2->tokAt(3)->link(), ") ;"))
+            {
                 tok2->deleteNext();
             }
         }
@@ -10131,7 +10285,8 @@ void Tokenizer::removeUnnecessaryQualification()
                         continue;
                 }
 
-                unnecessaryQualificationError(tok, qualification);
+                if (_settings && _settings->isEnabled("portability"))
+                    unnecessaryQualificationError(tok, qualification);
 
                 tok->deleteThis();
                 tok->deleteThis();

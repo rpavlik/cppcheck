@@ -340,6 +340,10 @@ void CheckClass::initializeVarList(const Function &func, std::list<std::string> 
         // Goto the first token in this statement..
         ftok = ftok->next();
 
+        // skip "return"
+        if (ftok->str() == "return")
+            ftok = ftok->next();
+
         // Skip "( * this )"
         if (Token::simpleMatch(ftok, "( * this ) ."))
         {
@@ -823,7 +827,17 @@ void CheckClass::operatorEq()
                 // use definition for check so we don't have to deal with qualification
                 if (!(Token::Match(func->tokenDef->tokAt(-3), ";|}|{|public:|protected:|private: %type% &") &&
                       func->tokenDef->strAt(-2) == scope->className))
-                    operatorEqReturnError(func->tokenDef->tokAt(-1), scope->className);
+                {
+                    // make sure we really have a copy assignment operator
+                    if (Token::Match(func->tokenDef->tokAt(2), "const| %var% &"))
+                    {
+                        if (func->tokenDef->strAt(2) == "const" &&
+                            func->tokenDef->strAt(3) == scope->className)
+                            operatorEqReturnError(func->tokenDef->tokAt(-1), scope->className);
+                        else if (func->tokenDef->strAt(2) == scope->className)
+                            operatorEqReturnError(func->tokenDef->tokAt(-1), scope->className);
+                    }
+                }
             }
         }
     }
@@ -1409,6 +1423,10 @@ bool CheckClass::isMemberVar(const Scope *scope, const Token *tok)
         {
             return true;
         }
+        else if (Token::Match(tok->tokAt(-3), "( * this )"))
+        {
+            return true;
+        }
         else if (Token::Match(tok->tokAt(-2), "%var% . %var%"))
         {
             tok = tok->tokAt(-2);
@@ -1493,14 +1511,24 @@ bool CheckClass::isConstMemberFunc(const Scope *scope, const Token *tok)
     unsigned int args = countParameters(tok);
 
     std::list<Function>::const_iterator    func;
+    unsigned int matches = 0;
+    unsigned int consts = 0;
 
     for (func = scope->functionList.begin(); func != scope->functionList.end(); ++func)
     {
         /** @todo we need to look at the argument types when there are overloaded functions
           * with the same number of arguments */
-        if (func->tokenDef->str() == tok->str() && func->argCount() == args && func->isConst)
-            return true;
+        if (func->tokenDef->str() == tok->str() && func->argCount() == args)
+        {
+            matches++;
+            if (func->isConst)
+                consts++;
+        }
     }
+
+    // if there are multiple matches that are all const, return const
+    if (matches > 0 && matches == consts)
+        return true;
 
     // not found in this class
     if (!scope->derivedFrom.empty())

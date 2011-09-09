@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="1">
-    <root name="."/>
+    <root name="../.."/>
     <includedir>
         <dir name="lib/"/>
         <dir name="cli/"/>
-        <dir name="externals/"/>
-        <dir name="gui/temp/"/>
     </includedir>
     <paths>
-        <dir name="lib/"/>
-        <dir name="cli/"/>
         <dir name="gui/"/>
         <dir name="test/"/>
     </paths>
-    <exclude>
+    <ignore>
         <path name="gui/temp/"/>
-        <path name="test/test.cxx"/>
-    </exclude>
+    </ignore>
+    <defines>
+        <define name="FOO" />
+    </defines>
 </project>
