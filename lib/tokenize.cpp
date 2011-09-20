@@ -225,9 +225,9 @@ unsigned int Tokenizer::sizeOfType(const Token *type) const
     else if (type->isLong())
     {
         if (type->str() == "double")
-            return sizeof(long double);
+            return _settings->sizeof_long_double;
         else if (type->str() == "long")
-            return sizeof(long long);
+            return _settings->sizeof_long_long;
     }
 
     return it->second;
@@ -2146,6 +2146,18 @@ bool Tokenizer::tokenize(std::istream &code,
     // make sure settings specified
     assert(_settings);
 
+    // Fill the map _typeSize..
+    _typeSize.clear();
+    _typeSize["char"] = 1;
+    _typeSize["bool"] = _settings->sizeof_bool;
+    _typeSize["short"] = _settings->sizeof_short;
+    _typeSize["int"] = _settings->sizeof_int;
+    _typeSize["long"] = _settings->sizeof_long;
+    _typeSize["float"] = _settings->sizeof_float;
+    _typeSize["double"] = _settings->sizeof_double;
+    _typeSize["size_t"] = _settings->sizeof_size_t;
+    _typeSize["*"] = _settings->sizeof_pointer;
+
     _configuration = configuration;
 
     // The "_files" vector remembers what files have been tokenized..
@@ -2607,6 +2619,11 @@ bool Tokenizer::tokenize(std::istream &code,
         }
     }
 
+    // convert platform dependent types to standard types
+    // 32 bits: size_t -> unsigned long
+    // 64 bits: size_t -> unsigned long long
+    simplifyPlatformTypes();
+
     // collapse compound standard types into a single token
     // unsigned long long int => long _isUnsigned=true,_isLong=true
     simplifyStdType();
@@ -2741,6 +2758,8 @@ bool Tokenizer::tokenize(std::istream &code,
             tok->tokAt(2)->str(temp);
         }
     }
+
+    removeRedundantCodeAfterReturn();
 
     _tokens->assignProgressValues();
 
@@ -3270,15 +3289,6 @@ void Tokenizer::simplifyTemplatesInstantiate(const Token *tok,
         // TODO: this is a bit hardcoded. make a bit more generic
         if (Token::Match(tok2, "%var% < sizeof ( %type% ) >") && tok2->tokAt(4)->isStandardType())
         {
-            // make sure standard types have a known size..
-            _typeSize["char"] = sizeof(char);
-            _typeSize["short"] = sizeof(short);
-            _typeSize["int"] = sizeof(int);
-            _typeSize["long"] = sizeof(long);
-            _typeSize["float"] = sizeof(float);
-            _typeSize["double"] = sizeof(double);
-            _typeSize["size_t"] = sizeof(size_t);
-
             Token * const tok3 = tok2->next();
             const unsigned int sz = sizeOfType(tok3->tokAt(3));
             Token::eraseTokens(tok3, tok3->tokAt(5));
@@ -3665,6 +3675,10 @@ void Tokenizer::setVarId()
     for (Token *tok = _tokens; tok; tok = tok->next())
     {
         if (tok != _tokens && !Token::Match(tok, "[;{}(,] %type%") && !Token::Match(tok, "[;{}(,] ::"))
+            continue;
+
+        // Ticket #3104 - "if (NOT x)"
+        if (tok->str() == "(" && tok->next()->str() == "NOT")
             continue;
 
         if (_errorLogger)
@@ -4224,17 +4238,6 @@ bool Tokenizer::createLinks()
 
 void Tokenizer::simplifySizeof()
 {
-    // Fill the map _typeSize..
-    _typeSize.clear();
-    _typeSize["char"] = sizeof(char);
-    _typeSize["short"] = sizeof(short);
-    _typeSize["int"] = sizeof(int);
-    _typeSize["long"] = sizeof(long);
-    _typeSize["float"] = sizeof(float);
-    _typeSize["double"] = sizeof(double);
-    _typeSize["size_t"] = sizeof(size_t);
-    _typeSize["*"] = sizeof(void *);
-
     for (Token *tok = _tokens; tok; tok = tok->next())
     {
         if (Token::Match(tok, "class|struct %var%"))
@@ -4538,6 +4541,8 @@ bool Tokenizer::simplifyTokenList()
     simplifyStd();
 
     simplifyGoto();
+
+    removeRedundantCodeAfterReturn();
 
     // Combine wide strings
     for (Token *tok = _tokens; tok; tok = tok->next())
@@ -4883,6 +4888,195 @@ void Tokenizer::removeRedundantAssignment()
         }
     }
 }
+
+void Tokenizer::removeRedundantCodeAfterReturn()
+{
+    unsigned int indentlevel = 0;
+    unsigned int indentcase = 0;
+    unsigned int indentret = 0;  //this is the indentation level when 'return ;' token is found;
+    unsigned int indentswitch = 0;
+    unsigned int indentlabel = 0;
+    bool ret = false; //is it already found a 'return' token?
+    bool switched = false; //is it there a switch code?
+    for (Token *tok = _tokens; tok; tok = tok->next())
+    {
+        if (tok->str() == "{")
+        {
+            ++indentlevel;
+            if (ret)
+            {
+                unsigned int indentlevel1 = indentlevel;
+                for (Token *tok2 = tok->next(); tok2; tok2 = tok2->next())
+                {
+                    if (tok2->str() == "{")
+                        ++indentlevel1;
+                    else if (tok2->str() == "}")
+                    {
+                        if (indentlevel1 == indentlevel)
+                            break;
+                        --indentlevel1;
+                    }
+                    else if (Token::Match(tok2, "%var% : ;")
+                             && tok2->str()!="case" && tok2->str()!="default")
+                    {
+                        indentlabel = indentlevel1;
+                        break;
+                    }
+                }
+                if (indentlevel > indentlabel)
+                {
+                    tok = tok->previous();
+                    tok->deleteNext();
+                }
+            }
+        }
+
+        else if (tok->str() == "}")
+        {
+            if (indentlevel == 0)
+                break;  // break out - it seems the code is wrong
+            //there's already a 'return ;' and more indentation!
+            if (ret)
+            {
+                if (!switched || indentlevel > indentcase)
+                {
+                    if (indentlevel > indentret && indentlevel > indentlabel)
+                    {
+                        tok = tok->previous();
+                        tok->deleteNext();
+                    }
+                }
+                else
+                {
+                    if (indentcase >= indentret && indentlevel > indentlabel)
+                    {
+                        tok = tok->previous();
+                        tok->deleteNext();
+                    }
+                }
+            }
+            if (indentlevel == indentret)
+                ret = false;
+            --indentlevel;
+            if (indentlevel <= indentcase)
+            {
+                if (!indentswitch)
+                {
+                    indentcase = 0;
+                    switched = false;
+                }
+                else
+                {
+                    --indentswitch;
+                    indentcase = indentlevel-1;
+                }
+            }
+        }
+        else if (!ret)
+        {
+            if (tok->str() == "switch")
+            {
+                if (indentlevel == 0)
+                    break;
+                if (!switched)
+                {
+                    for (Token *tok2 = tok->next(); tok2; tok2 = tok2->next())
+                    {
+                        if (tok2->str() == "{")
+                        {
+                            switched = true;
+                            tok = tok2;
+                            break;
+                        }
+                        else if (tok2->str() == "}")
+                            break;  //bad code
+                    }
+                    if (!switched)
+                        break;
+                    ++indentlevel;
+                    indentcase = indentlevel;
+                }
+                else
+                {
+                    ++indentswitch;
+                    //todo this case
+                }
+            }
+            else if (switched
+                     && (tok->str() == "case" || tok->str() == "default"))
+            {
+                if (indentlevel > indentcase)
+                {
+                    --indentlevel;
+                }
+                for (Token *tok2 = tok->next(); tok2; tok2 = tok2->next())
+                {
+                    if (tok2->str() == ":" || Token::Match(tok2, ": ;"))
+                    {
+                        if (indentlevel == indentcase)
+                        {
+                            ++indentlevel;
+                        }
+                        tok = tok2;
+                        break;
+                    }
+                    else if (tok2->str() == "}" || tok2->str() == "{")
+                        break;  //bad code
+                }
+            }
+            else if (tok->str() == "return")
+            {
+                if (indentlevel == 0)
+                    break;  // break out - never seen a 'return' not inside a scope;
+
+                //catch the first ';' after the return
+                for (Token *tok2 = tok->next(); tok2; tok2 = tok2->next())
+                {
+                    if (tok2->str() == ";")
+                    {
+                        ret = true;
+                        tok = tok2;
+                        break;
+                    }
+                    else if (tok2->str() == "{" || tok2->str() == "}")
+                        break;  //I think this is an error code...
+                }
+                if (!ret)
+                    break;
+                indentret = indentlevel;
+            }
+        }
+        else if (ret) //there's already a "return;" declaration
+        {
+            if (!switched || indentlevel > indentcase+1)
+            {
+                if (indentlevel >= indentret && (!(Token::Match(tok, "%var% : ;")) || tok->str()=="case" || tok->str()=="default"))
+                {
+                    tok = tok->previous();
+                    tok->deleteNext();
+                }
+                else
+                {
+                    ret = false;
+                }
+            }
+            else
+            {
+                if (!(Token::Match(tok, "%var% : ;")) && tok -> str() != "case" && tok->str() != "default")
+                {
+                    tok = tok->previous();
+                    tok->deleteNext();
+                }
+                else
+                {
+                    ret = false;
+                    tok = tok->previous();
+                }
+            }
+        }
+    }
+}
+
 
 bool Tokenizer::removeReduntantConditions()
 {
@@ -6383,6 +6577,174 @@ void Tokenizer::simplifyVarDecl()
     }
 }
 
+void Tokenizer::simplifyPlatformTypes()
+{
+    enum { isLongLong, isLong, isInt } type;
+
+    /** @todo This assumes a flat address space. Not true for segmented address space (FAR *). */
+    if (_settings->sizeof_size_t == 8)
+        type = isLongLong;
+    else if (_settings->sizeof_size_t == 4 && _settings->sizeof_long == 4)
+        type = isLong;
+    else if (_settings->sizeof_size_t == 4)
+        type = isInt;
+    else
+        return;
+
+    for (Token *tok = _tokens; tok; tok = tok->next())
+    {
+        if (Token::simpleMatch(tok, "std :: size_t|ssize_t|ptrdiff_t|intptr_t|uintptr_t"))
+        {
+            tok->deleteNext();
+            tok->deleteThis();
+        }
+        else if (Token::simpleMatch(tok, ":: size_t|ssize_t|ptrdiff_t|intptr_t|uintptr_t"))
+        {
+            tok->deleteThis();
+        }
+
+        if (Token::Match(tok, "size_t|uintptr_t"))
+        {
+            tok->str("unsigned");
+
+            switch (type)
+            {
+            case isLongLong:
+                tok->insertToken("long");
+                tok->insertToken("long");
+                break;
+            case isLong :
+                tok->insertToken("long");
+                break;
+            case isInt:
+                tok->insertToken("int");
+                break;
+            }
+        }
+        else if (Token::Match(tok, "ssize_t|ptrdiff_t|intptr_t"))
+        {
+            switch (type)
+            {
+            case isLongLong:
+                tok->str("long");
+                tok->insertToken("long");
+                break;
+            case isLong :
+                tok->str("long");
+                break;
+            case isInt:
+                tok->str("int");
+                break;
+            }
+        }
+    }
+
+    if (_settings->platformType == Settings::Win32 ||
+        _settings->platformType == Settings::Win64)
+    {
+        for (Token *tok = _tokens; tok; tok = tok->next())
+        {
+            if (Token::Match(tok, "BOOL|INT|INT32"))
+                tok->str("int");
+            else if (Token::Match(tok, "BOOLEAN|BYTE|UCHAR"))
+            {
+                tok->str("unsigned");
+                tok->insertToken("char");
+            }
+            else if (tok->str() == "CHAR")
+                tok->str("char");
+            else if (Token::Match(tok, "DWORD"))
+            {
+                tok->str("unsigned");
+                tok->insertToken("long");
+            }
+            else if (tok->str() == "FLOAT")
+                tok->str("float");
+            else if (tok->str() == "INT64")
+            {
+                tok->str("long");
+                tok->insertToken("long");
+            }
+            else if (tok->str() == "LONG")
+                tok->str("long");
+            else if (Token::Match(tok, "LPBOOL|PBOOL"))
+            {
+                tok->str("int");
+                tok->insertToken("*");
+            }
+            else if (Token::Match(tok, "LPBYTE|PBOOLEAN|PBYTE"))
+            {
+                tok->str("unsigned");
+                tok->insertToken("*");
+                tok->insertToken("char");
+            }
+            else if (Token::Match(tok, "LPCSTR|PCSTR"))
+            {
+                tok->str("const");
+                tok->insertToken("*");
+                tok->insertToken("char");
+            }
+            else if (tok->str() == "LPCVOID")
+            {
+                tok->str("const");
+                tok->insertToken("*");
+                tok->insertToken("void");
+            }
+            else if (tok->str() == "LPDWORD")
+            {
+                tok->str("unsigned");
+                tok->insertToken("*");
+                tok->insertToken("long");
+            }
+            else if (Token::Match(tok, "LPINT|PINT"))
+            {
+                tok->str("int");
+                tok->insertToken("*");
+            }
+            else if (Token::Match(tok, "LPLONG|PLONG"))
+            {
+                tok->str("long");
+                tok->insertToken("*");
+            }
+            else if (Token::Match(tok, "LPSTR|PSTR|PCHAR"))
+            {
+                tok->str("char");
+                tok->insertToken("*");
+            }
+            else if (Token::Match(tok, "LPVOID|PVOID"))
+            {
+                tok->str("void");
+                tok->insertToken("*");
+            }
+            else if (Token::Match(tok, "LPWORD|PWORD"))
+            {
+                tok->str("unsigned");
+                tok->insertToken("*");
+                tok->insertToken("short");
+            }
+            else if (tok->str() == "SHORT")
+                tok->str("short");
+            else if (tok->str() == "UINT")
+            {
+                tok->str("unsigned");
+                tok->insertToken("int");
+            }
+            else if (tok->str() == "ULONG")
+            {
+                tok->str("unsigned");
+                tok->insertToken("long");
+            }
+            else if (Token::Match(tok, "USHORT|WORD"))
+            {
+                tok->str("unsigned");
+                tok->insertToken("short");
+            }
+            else if (tok->str() == "VOID")
+                tok->str("void");
+        }
+    }
+}
+
 void Tokenizer::simplifyStdType()
 {
     for (Token *tok = _tokens; tok; tok = tok->next())
@@ -7831,13 +8193,15 @@ bool Tokenizer::simplifyCalculations()
                     tok->deleteThis();
                     ret = true;
                 }
-                else if (Token::Match(tok->previous(), "[=([,] 0 [+|]"))
+                else if (Token::Match(tok->previous(), "[=([,] 0 [+|]") ||
+                         Token::Match(tok->previous(), "return|case 0 [+|]"))
                 {
                     tok->deleteThis();
                     tok->deleteThis();
                     ret = true;
                 }
-                else if (Token::Match(tok->previous(), "[=[(,] 0 * %any% ,|]|)|;|%op%"))
+                else if (Token::Match(tok->previous(), "[=[(,] 0 * %any% ,|]|)|;|=|%op%") ||
+                         Token::Match(tok->previous(), "return|case 0 * %any% ,|:|;|=|%op%"))
                 {
                     tok->deleteNext();
                     if (tok->next()->str() == "(")
@@ -7939,7 +8303,8 @@ bool Tokenizer::simplifyCalculations()
                    Token::Match(tok, "[[,(=<>+-*|&^] %num% [+-*/] %num% <<|>>") ||
                    Token::Match(tok, "<< %num% [+-*/] %num% <<") ||
                    Token::Match(tok, "[(,[] %num% [|&^] %num% [];,);]") ||
-                   Token::Match(tok, "(|%op% %num% [+-*/] %num% )|%op%"))
+                   Token::Match(tok, "(|%op% %num% [+-*/] %num% )|%op%") ||
+                   Token::Match(tok,"return|case %num% [+-*/] %num% ;|,|=|:|%op%"))
             {
                 tok = tok->next();
 
@@ -10028,6 +10393,11 @@ void Tokenizer::simplifyBuiltinExpect()
 // Remove Microsoft MFC 'DECLARE_MESSAGE_MAP()'
 void Tokenizer::simplifyMicrosoftMFC()
 {
+    // skip if not Windows
+    if (!(_settings->platformType == Settings::Win32 ||
+          _settings->platformType == Settings::Win64))
+        return;
+
     for (Token *tok = _tokens; tok; tok = tok->next())
     {
         if (Token::simpleMatch(tok->next(), "DECLARE_MESSAGE_MAP ( )"))
@@ -10157,6 +10527,7 @@ void Tokenizer::simplifyQtSignalsSlots()
                 tok2->str(tok2->str() + ":");
                 tok2->deleteNext();
                 tok2->deleteNext();
+                tok2 = tok2->previous();
             }
             else if (Token::Match(tok2->next(), "signals|Q_SIGNALS :"))
             {

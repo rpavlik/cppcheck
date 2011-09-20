@@ -110,9 +110,6 @@ public:
     /** Check for negative index */
     void negativeIndex();
 
-    /** Check for buffer overruns */
-    void checkScope(const Token *tok, const std::vector<std::string> &varname, const MathLib::bigint size, const MathLib::bigint total_size, unsigned int varid);
-
     /** Information about N-dimensional array */
     class ArrayInfo
     {
@@ -165,6 +162,10 @@ public:
         {
             return _num[index];
         }
+        void num(size_t index, MathLib::bigint number)
+        {
+            _num[index] = number;
+        }
 
         /** size of each element */
         MathLib::bigint element_size() const
@@ -177,16 +178,27 @@ public:
         {
             return _varid;
         }
+        void varid(unsigned int id)
+        {
+            _varid = id;
+        }
 
         /** Variable name */
         const std::string &varname() const
         {
             return _varname;
         }
+        void varname(const std::string &name)
+        {
+            _varname = name;
+        }
     };
 
     /** Check for buffer overruns (based on ArrayInfo) */
     void checkScope(const Token *tok, const ArrayInfo &arrayInfo);
+
+    /** Check for buffer overruns */
+    void checkScope(const Token *tok, const std::vector<std::string> &varname, const ArrayInfo &arrayInfo);
 
     /** Check scope helper function - parse for body */
     void checkScopeForBody(const Token *tok, const ArrayInfo &arrayInfo, bool &bailout);
@@ -209,7 +221,6 @@ public:
      */
     void checkFunctionCall(const Token *tok, const ArrayInfo &arrayInfo);
 
-    void arrayIndexOutOfBoundsError(const Token *tok, MathLib::bigint size, MathLib::bigint index);
     void arrayIndexOutOfBoundsError(const Token *tok, const ArrayInfo &arrayInfo, const std::vector<MathLib::bigint> &index);
     void arrayIndexOutOfBoundsError(const std::list<const Token *> &callstack, const ArrayInfo &arrayInfo, const std::vector<MathLib::bigint> &index);
     void bufferOverrunError(const Token *tok, const std::string &varnames = "");
@@ -227,7 +238,9 @@ public:
     void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings)
     {
         CheckBufferOverrun c(0, settings, errorLogger);
-        c.arrayIndexOutOfBoundsError(0, 2, 2);
+        std::vector<MathLib::bigint> indexes;
+        indexes.push_back(2);
+        c.arrayIndexOutOfBoundsError(0, ArrayInfo(0, "array", 1, 2), indexes);
         c.bufferOverrunError(0, std::string("buffer"));
         c.strncatUsageError(0);
         c.outOfBoundsError(0, "index");

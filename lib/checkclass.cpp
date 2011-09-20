@@ -378,6 +378,16 @@ void CheckClass::initializeVarList(const Function &func, std::list<std::string> 
         else if (Token::simpleMatch(ftok, "operator= (") &&
                  ftok->previous()->str() != "::")
         {
+            // recursive call / calling overloaded function
+            // assume that all variables are initialized
+            if (std::find(callstack.begin(), callstack.end(), ftok->str()) != callstack.end())
+            {
+                /** @todo false negative: just bail */
+                assignAllVar(usage);
+                return;
+            }
+
+            /** @todo check function parameters for overloaded function so we check the right one */
             // check if member function exists
             std::list<Function>::const_iterator it;
             for (it = scope->functionList.begin(); it != scope->functionList.end(); ++it)
@@ -1591,6 +1601,13 @@ bool CheckClass::checkConstFunc(const Scope *scope, const Token *tok)
         }
         else if (Token::simpleMatch(tok1->previous(), ") <<") &&
                  isMemberVar(scope, tok1->tokAt(-2)))
+        {
+            isconst = false;
+            break;
+        }
+
+        // streaming: >>
+        else if (tok1->str() == ">>" && isMemberVar(scope, tok1->next()))
         {
             isconst = false;
             break;

@@ -199,6 +199,9 @@ public:
     /** Remove redundant assignment */
     void removeRedundantAssignment();
 
+    /** Remove redudant code after return */
+    void removeRedundantCodeAfterReturn();
+
     /**
      * Replace sizeof() to appropriate size.
      */
@@ -217,6 +220,13 @@ public:
      */
     void simplifyInitVar();
     Token * initVar(Token * tok);
+
+    /**
+     * Convert platform dependent types to standard types.
+     * 32 bits: size_t -> unsigned long
+     * 64 bits: size_t -> unsigned long long
+     */
+    void simplifyPlatformTypes();
 
     /**
      * Collapse compound standard types into a single token.

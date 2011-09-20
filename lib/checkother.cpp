@@ -195,7 +195,8 @@ void CheckOther::clarifyCondition()
             if (Token::Match(tok2, "[&|^]"))
             {
                 // don't write false positives when templates are used
-                if (Token::Match(tok, "<|>") && !code_is_c() && tok2->str() == "&")
+                if (Token::Match(tok, "<|>") && (Token::Match(tok2, "& ,|>") ||
+                                                 Token::Match(tok2->previous(), "const &")))
                     continue;
 
                 clarifyConditionError(tok,false,true);
@@ -1870,8 +1871,7 @@ void CheckOther::checkZeroDivision()
 {
     for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
     {
-
-        if (Token::Match(tok, "/ %num%") &&
+        if (Token::Match(tok, "[/%] %num%") &&
             MathLib::isInt(tok->next()->str()) &&
             MathLib::toLongNumber(tok->next()->str()) == 0L)
         {

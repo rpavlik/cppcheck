@@ -108,6 +108,7 @@ private:
         TEST_CASE(operatorEq1);
         TEST_CASE(operatorEq2);
         TEST_CASE(operatorEq3); // ticket #3051
+        TEST_CASE(operatorEq4); // ticket #3114
         TEST_CASE(operatorEqRetRefThis1);
         TEST_CASE(operatorEqRetRefThis2); // ticket #1323
         TEST_CASE(operatorEqRetRefThis3); // ticket #1405
@@ -183,6 +184,7 @@ private:
         TEST_CASE(const51); // ticket #3040
         TEST_CASE(const52); // ticket #3049
         TEST_CASE(const53); // ticket #3052
+        TEST_CASE(const54);
         TEST_CASE(assigningPointerToPointerIsNotAConstOperation);
         TEST_CASE(assigningArrayElementIsNotAConstOperation);
         TEST_CASE(constoperator1);  // operator< can often be const
@@ -313,6 +315,15 @@ private:
                        "{\n"
                        "public:\n"
                        "    A * operator=(const A*);\n"
+                       "};\n");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void operatorEq4() // ticket #3114 (infinite loop)
+    {
+        checkOpertorEq("struct A {\n"
+                       "    A& operator=(A const& a) { return operator=(&a); }\n"
+                       "    A& operator=(const A*) { return *this; }\n"
                        "};\n");
         ASSERT_EQUALS("", errout.str());
     }
@@ -467,8 +478,8 @@ private:
         checkOpertorEqRetRefThis(
             "class A {\n"
             "public:\n"
-            "  inline A &operator =(int *other) { return (*this;) };\n"
-            "  inline A &operator =(long *other) { return (*this = 0;) };\n"
+            "  inline A &operator =(int *other) { return (*this); };\n"
+            "  inline A &operator =(long *other) { return (*this = 0); };\n"
             "};");
         ASSERT_EQUALS("", errout.str());
 
@@ -478,14 +489,14 @@ private:
             "  A &operator =(int *other);\n"
             "  A &operator =(long *other);\n"
             "};\n"
-            "A &A::operator =(int *other) { return (*this;) };\n"
-            "A &A::operator =(long *other) { return (*this = 0;) };");
+            "A &A::operator =(int *other) { return (*this); };\n"
+            "A &A::operator =(long *other) { return (*this = 0); };");
         ASSERT_EQUALS("", errout.str());
 
         checkOpertorEqRetRefThis(
             "class A {\n"
             "public:\n"
-            "  inline A &operator =(int *other) { return (*this;) };\n"
+            "  inline A &operator =(int *other) { return (*this); };\n"
             "  inline A &operator =(long *other) { return operator = (*(int *)other); };\n"
             "};");
         ASSERT_EQUALS("", errout.str());
@@ -496,7 +507,7 @@ private:
             "  A &operator =(int *other);\n"
             "  A &operator =(long *other);\n"
             "};\n"
-            "A &A::operator =(int *other) { return (*this;) };\n"
+            "A &A::operator =(int *other) { return (*this); };\n"
             "A &A::operator =(long *other) { return operator = (*(int *)other); };");
         ASSERT_EQUALS("", errout.str());
 
@@ -506,7 +517,7 @@ private:
             "  A &operator =(int *other);\n"
             "  A &operator =(long *other);\n"
             "};\n"
-            "A &A::operator =(int *other) { return (*this;) };\n"
+            "A &A::operator =(int *other) { return (*this); };\n"
             "A &A::operator =(long *other) { return this->operator = (*(int *)other); };");
         ASSERT_EQUALS("", errout.str());
     }
@@ -5728,6 +5739,17 @@ private:
         checkConst("class Example {\n"
                    "  public:\n"
                    "    void Clear(void) { Example tmp; (*this) = tmp; }\n"
+                   "};\n");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void const54()
+    {
+        checkConst("class MyObject {\n"
+                   "    int tmp;\n"
+                   "    MyObject() : tmp(0) {}\n"
+                   "public:\n"
+                   "    void set(std::stringstream &in) { in >> tmp; }\n"
                    "};\n");
         ASSERT_EQUALS("", errout.str());
     }

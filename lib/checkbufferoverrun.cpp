@@ -47,21 +47,6 @@ CheckBufferOverrun instance;
 
 //---------------------------------------------------------------------------
 
-void CheckBufferOverrun::arrayIndexOutOfBoundsError(const Token *tok, MathLib::bigint size, MathLib::bigint index)
-{
-    if (size >= 1)
-    {
-        std::ostringstream errmsg;
-        errmsg << "Array '";
-        if (tok)
-            errmsg << tok->str();
-        else
-            errmsg << "array";
-        errmsg << "[" << size << "]' index " << index << " out of bounds";
-        reportError(tok, Severity::error, "arrayIndexOutOfBounds", errmsg.str().c_str());
-    }
-}
-
 void CheckBufferOverrun::arrayIndexOutOfBoundsError(const Token *tok, const ArrayInfo &arrayInfo, const std::vector<MathLib::bigint> &index)
 {
     std::ostringstream oss;
@@ -557,11 +542,15 @@ void CheckBufferOverrun::parse_for_body(const Token *tok2, const ArrayInfo &arra
             //printf("min_index = %d, max_index = %d, size = %d\n", min_index, max_index, size);
             if (min_index < 0 || max_index < 0)
             {
-                arrayIndexOutOfBoundsError(tok2, (int)arrayInfo.num(0), std::min(min_index, max_index));
+                std::vector<MathLib::bigint> indexes;
+                indexes.push_back(std::min(min_index, max_index));
+                arrayIndexOutOfBoundsError(tok2, arrayInfo, indexes);
             }
             if (min_index >= (int)arrayInfo.num(0) || max_index >= (int)arrayInfo.num(0))
             {
-                arrayIndexOutOfBoundsError(tok2, (int)arrayInfo.num(0), std::max(min_index, max_index));
+                std::vector<MathLib::bigint> indexes;
+                indexes.push_back(std::max(min_index, max_index));
+                arrayIndexOutOfBoundsError(tok2, arrayInfo, indexes);
             }
         }
     }
@@ -858,8 +847,12 @@ void CheckBufferOverrun::checkScopeForBody(const Token *tok, const ArrayInfo &ar
 }
 
 
-void CheckBufferOverrun::checkScope(const Token *tok, const std::vector<std::string> &varname, const MathLib::bigint size, const MathLib::bigint total_size, unsigned int varid)
+void CheckBufferOverrun::checkScope(const Token *tok, const std::vector<std::string> &varname, const ArrayInfo &arrayInfo)
 {
+    const MathLib::bigint size = arrayInfo.num(0);
+    const MathLib::bigint total_size = arrayInfo.element_size() * arrayInfo.num(0);
+    unsigned int varid = arrayInfo.varid();
+
     std::string varnames;
     for (unsigned int i = 0; i < varname.size(); ++i)
         varnames += (i == 0 ? "" : " . ") + varname[i];
@@ -874,23 +867,15 @@ void CheckBufferOverrun::checkScope(const Token *tok, const std::vector<std::str
     }
 
     // Array index..
-    if (varid > 0)
-    {
-        if (Token::Match(tok, "%varid% [ %num% ]", varid))
-        {
-            const MathLib::bigint index = MathLib::toLongNumber(tok->strAt(2));
-            if (index >= size)
-            {
-                arrayIndexOutOfBoundsError(tok, size, index);
-            }
-        }
-    }
-    else if (Token::Match(tok, (varnames + " [ %num% ]").c_str()))
+    if ((varid > 0 && Token::Match(tok, "%varid% [ %num% ]", varid)) ||
+        (varid == 0 && Token::Match(tok, (varnames + " [ %num% ]").c_str())))
     {
         const MathLib::bigint index = MathLib::toLongNumber(tok->strAt(2 + varc));
         if (index >= size)
         {
-            arrayIndexOutOfBoundsError(tok->tokAt(varc), size, index);
+            std::vector<MathLib::bigint> indexes;
+            indexes.push_back(index);
+            arrayIndexOutOfBoundsError(tok->tokAt(varc), arrayInfo, indexes);
         }
     }
 
@@ -927,47 +912,85 @@ void CheckBufferOverrun::checkScope(const Token *tok, const std::vector<std::str
             break;
 
         // Array index..
-        if (varid > 0)
+        if ((varid > 0 && ((tok->str() == "return" || (!tok->isName() && !Token::Match(tok, "[.&]"))) && Token::Match(tok->next(), "%varid% [ %num% ]", varid))) ||
+            (varid == 0 && ((tok->str() == "return" || (!tok->isName() && !Token::Match(tok, "[.&]"))) && Token::Match(tok->next(), (varnames + " [ %num% ]").c_str()))))
         {
-            if (!tok->isName() && !Token::Match(tok, "[.&]") && Token::Match(tok->next(), "%varid% [ %num% ]", varid))
+            std::vector<MathLib::bigint> indexes;
+            const Token *tok2 = tok->tokAt(2 + varc);
+            for (; Token::Match(tok2, "[ %num% ]"); tok2 = tok2->tokAt(3))
             {
-                const MathLib::bigint index = MathLib::toLongNumber(tok->strAt(3));
-                if (index < 0 || index >= size)
+                const MathLib::bigint index = MathLib::toLongNumber(tok2->strAt(1));
+                indexes.push_back(index);
+            }
+
+            if (indexes.size() == arrayInfo.num().size())
+            {
+                // Check if the indexes point outside the whole array..
+                // char a[10][10];
+                // a[0][20]  <-- ok.
+                // a[9][20]  <-- error.
+
+                // total number of elements of array..
+                MathLib::bigint totalElements = 1;
+
+                // total index..
+                MathLib::bigint totalIndex = 0;
+
+                // calculate the totalElements and totalIndex..
+                for (unsigned int i = 0; i < indexes.size(); ++i)
                 {
-                    if (index > size || !Token::simpleMatch(tok->previous(), "& ("))
+                    std::size_t ri = indexes.size() - 1 - i;
+                    totalIndex += indexes[ri] * totalElements;
+                    totalElements *= arrayInfo.num(ri);
+                }
+
+                // totalElements == 0 => Unknown size
+                if (totalElements == 0)
+                    continue;
+
+                const Token *tok3 = tok->previous();
+                while (tok3 && Token::Match(tok3->tokAt(-1), "%var% ."))
+                    tok3 = tok3->tokAt(-2);
+
+                // just taking the address?
+                const bool addr(Token::Match(tok3, "&") ||
+                                Token::simpleMatch(tok3->tokAt(-1), "& ("));
+
+                // taking address of 1 past end?
+                if (addr && totalIndex == totalElements)
+                    continue;
+
+                // Is totalIndex in bounds?
+                if (totalIndex > totalElements || totalIndex < 0)
+                {
+                    arrayIndexOutOfBoundsError(tok->tokAt(1 + varc), arrayInfo, indexes);
+                }
+                // Is any array index out of bounds?
+                else
+                {
+                    // check each index for overflow
+                    for (unsigned int i = 0; i < indexes.size(); ++i)
                     {
-                        arrayIndexOutOfBoundsError(tok->next(), size, index);
+                        if (indexes[i] >= arrayInfo.num(i))
+                        {
+                            // The access is still within the memory range for the array
+                            // so it may be intentional.
+                            if (_settings->inconclusive)
+                            {
+                                arrayIndexOutOfBoundsError(tok->tokAt(1 + varc), arrayInfo, indexes);
+                                break; // only warn about the first one
+                            }
+                        }
                     }
                 }
             }
-            if (Token::Match(tok, "return %varid% [ %num% ]", varid))
-            {
-                const MathLib::bigint index = MathLib::toLongNumber(tok->strAt(3));
-                if (index < 0 || index >= size)
-                {
-                    arrayIndexOutOfBoundsError(tok->next(), size, index);
-                }
-            }
-        }
-        else if (!tok->isName() && !Token::Match(tok, "[.&]") && Token::Match(tok->next(), (varnames + " [ %num% ]").c_str()))
-        {
-            const MathLib::bigint index = MathLib::toLongNumber(tok->strAt(3 + varc));
-            if (index >= size)
-            {
-                arrayIndexOutOfBoundsError(tok->tokAt(1 + varc), size, index);
-            }
-            tok = tok->tokAt(4);
+            tok = tok2;
             continue;
         }
-
 
         // memset, memcmp, memcpy, strncpy, fgets..
         if (varid == 0 && size > 0)
         {
-            ArrayInfo arrayInfo(0U,
-                                varnames,
-                                (unsigned int)(total_size / size),
-                                (unsigned int)size);
             if (Token::Match(tok, ("%var% ( " + varnames + " ,").c_str()))
                 checkFunctionParameter(*tok, 1, arrayInfo);
             if (Token::Match(tok, ("%var% ( %var% , " + varnames + " ,").c_str()))
@@ -977,9 +1000,9 @@ void CheckBufferOverrun::checkScope(const Token *tok, const std::vector<std::str
         // Loop..
         if (Token::simpleMatch(tok, "for ("))
         {
-            const ArrayInfo arrayInfo(varid, varnames, (unsigned int)size, (unsigned int)total_size);
+            const ArrayInfo arrayInfo1(varid, varnames, (unsigned int)size, (unsigned int)total_size);
             bool bailout = false;
-            checkScopeForBody(tok, arrayInfo, bailout);
+            checkScopeForBody(tok, arrayInfo1, bailout);
             if (bailout)
                 break;
             continue;
@@ -1055,8 +1078,8 @@ void CheckBufferOverrun::checkScope(const Token *tok, const std::vector<std::str
             if (varid == 0)
                 continue;
 
-            const ArrayInfo arrayInfo(varid, varnames, size, total_size / size);
-            checkFunctionCall(tok, arrayInfo);
+            const ArrayInfo arrayInfo1(varid, varnames, size, total_size / size);
+            checkFunctionCall(tok, arrayInfo1);
         }
 
         // undefined behaviour: result of pointer arithmetic is out of bounds
@@ -1105,12 +1128,8 @@ void CheckBufferOverrun::checkScope(const Token *tok, const ArrayInfo &arrayInfo
             continue;
         }
 
-        else if (Token::Match(tok, "%var% [ %num% ]") && tok->varId())
+        else if (Token::Match(tok, "%varid% [ %num% ]", arrayInfo.varid()))
         {
-            const Variable *var = _tokenizer->getSymbolDatabase()->getVariableFromVarId(tok->varId());
-            if (!var || var->varId() != arrayInfo.varid())
-                continue;
-
             std::vector<MathLib::bigint> indexes;
             for (const Token *tok2 = tok->next(); Token::Match(tok2, "[ %num% ]"); tok2 = tok2->tokAt(3))
             {
@@ -1147,38 +1166,13 @@ void CheckBufferOverrun::checkScope(const Token *tok, const ArrayInfo &arrayInfo
                 if (totalElements == 0)
                     continue;
 
-                // get the full variable name
-                std::string varname;
                 const Token *tok2 = tok->previous();
                 while (tok2 && Token::Match(tok2->tokAt(-1), "%var% ."))
-                {
-                    varname += (tok2->strAt(-1) + ".");
                     tok2 = tok2->tokAt(-2);
-                }
 
                 // just taking the address?
                 const bool addr(Token::Match(tok2, "&") ||
                                 Token::simpleMatch(tok2->tokAt(-1), "& ("));
-
-                // is this a member variable?
-                if (varname.size() && tok2->next()->varId())
-                {
-                    // is this variable a pointer?
-                    const Variable *var1 =_tokenizer->getSymbolDatabase()->getVariableFromVarId(tok2->next()->varId());
-                    if (var1 && var1->typeEndToken()->str() == "*")
-                    {
-                        // is variable public struct member?
-                        if (var->scope()->type == Scope::eStruct && var->isPublic())
-                        {
-                            // last member of a struct with array size of 0 or 1 could be a variable struct
-                            if (var->dimensions().size() == 1 && var->dimension(0) < 2 &&
-                                var->index() == (var->scope()->varlist.size() - 1))
-                            {
-                                continue;
-                            }
-                        }
-                    }
-                }
 
                 // taking address of 1 past end?
                 if (addr && totalIndex == totalElements)
@@ -1355,28 +1349,21 @@ void CheckBufferOverrun::checkGlobalAndLocalVariable()
         {
             ArrayInfo arrayInfo(var, _tokenizer);
             const Token *tok = var->nameToken();
-            if (var->scope() && var->scope()->isClassOrStruct())
+            while (tok && tok->str() != ";")
             {
-                tok = var->scope()->classEnd->next();
-            }
-            else
-            {
-                while (tok && tok->str() != ";")
-                {
-                    if (tok->str() == "{")
-                    {
-                        if (Token::simpleMatch(tok->previous(), "= {"))
-                            tok = tok->link();
-                        else
-                            break;
-                    }
-                    tok = tok->next();
-                }
-                if (!tok)
-                    break;
                 if (tok->str() == "{")
-                    tok = tok->next();
+                {
+                    if (Token::simpleMatch(tok->previous(), "= {"))
+                        tok = tok->link();
+                    else
+                        break;
+                }
+                tok = tok->next();
             }
+            if (!tok)
+                break;
+            if (tok->str() == "{")
+                tok = tok->next();
             checkScope(tok, arrayInfo);
         }
     }
@@ -1477,7 +1464,8 @@ void CheckBufferOverrun::checkGlobalAndLocalVariable()
             continue;
 
         std::vector<std::string> v;
-        checkScope(tok->tokAt(nextTok), v, size, total_size, varid);
+        ArrayInfo temp(varid, tok->next()->str(), total_size / size, size);
+        checkScope(tok->tokAt(nextTok), v, temp);
     }
 }
 //---------------------------------------------------------------------------
@@ -1519,7 +1507,7 @@ void CheckBufferOverrun::checkStructVariable()
                     if (func_scope->type != Scope::eFunction)
                         continue;
 
-                    // is this a member function of this class/struct?
+                    // check for member variables
                     if (func_scope->functionOf == &*scope)
                     {
                         // only check non-empty function
@@ -1531,115 +1519,125 @@ void CheckBufferOverrun::checkStructVariable()
                         }
                     }
 
-                    // not a member function of this class/struct
-                    else
+                    // skip inner scopes..
+                    /** @todo false negatives: handle inner scopes someday */
+                    if (scope->nestedIn->isClassOrStruct())
+                        continue;
+
+                    std::vector<std::string> varname;
+                    varname.push_back("");
+                    varname.push_back(arrayInfo.varname());
+
+                    // search the function and it's parameters
+                    for (const Token *tok3 = func_scope->classDef; tok3 && tok3 != func_scope->classEnd; tok3 = tok3->next())
                     {
-                        // skip inner scopes..
-                        /** @todo false negatives: handle inner scopes someday */
-                        if (scope->nestedIn->isClassOrStruct())
+                        // search for the class/struct name
+                        if (tok3->str() != scope->className)
                             continue;
 
-                        // Only handling 1-dimensional arrays yet..
-                        /** @todo false negatives: handle multi-dimension arrays someday */
-                        if (arrayInfo.num().size() > 1)
+                        // Declare variable: Fred fred1;
+                        if (Token::Match(tok3->next(), "%var% ;"))
+                            varname[0] = tok3->strAt(1);
+
+                        // Declare pointer or reference: Fred *fred1
+                        else if (Token::Match(tok3->next(), "*|& %var% [,);=]"))
+                            varname[0] = tok3->strAt(2);
+
+                        else
                             continue;
 
-                        std::vector<std::string> varname;
-                        varname.push_back("");
-                        varname.push_back(arrayInfo.varname());
-
-                        // search the function and it's parameters
-                        for (const Token *tok3 = func_scope->classDef; tok3 && tok3 != func_scope->classEnd; tok3 = tok3->next())
+                        // check for variable sized structure
+                        if (scope->type == Scope::eStruct && var->isPublic())
                         {
-                            // search for the class/struct name
-                            if (tok3->str() != scope->className)
-                                continue;
-
-                            // Declare variable: Fred fred1;
-                            if (Token::Match(tok3->next(), "%var% ;"))
-                                varname[0] = tok3->strAt(1);
-
-                            // Declare pointer or reference: Fred *fred1
-                            else if (Token::Match(tok3->next(), "*|& %var% [,);=]"))
-                                varname[0] = tok3->strAt(2);
-
-                            else
-                                continue;
-
-                            // Skip array with only 0/1 elements because those are
-                            // often overrun intentionally
-                            // is variable public struct member?
-                            if (scope->type == Scope::eStruct && var->isPublic())
+                            // last member of a struct with array size of 0 or 1 could be a variable sized structure
+                            if (var->dimensions().size() == 1 && var->dimension(0) < 2 &&
+                                var->index() == (scope->varlist.size() - 1))
                             {
-                                // last member of a struct with array size of 0 or 1 could be a variable sized struct
-                                if (var->dimensions().size() == 1 && var->dimension(0) < 2 &&
-                                    var->index() == (scope->varlist.size() - 1))
+                                // dynamically allocated so could be variable sized structure
+                                if (tok3->next()->str() == "*")
                                 {
-                                    // dynamically allocated so could be variable sized array
-                                    if (tok3->next()->str() == "*")
+                                    // check for allocation
+                                    if ((Token::Match(tok3->tokAt(3), "; %var% = malloc ( %num% ) ;") ||
+                                         (Token::Match(tok3->tokAt(3), "; %var% = (") &&
+                                          Token::Match(tok3->tokAt(6)->link(), ") malloc ( %num% ) ;"))) &&
+                                        (tok3->strAt(4) == tok3->strAt(2)))
                                     {
-                                        if ((Token::Match(tok3->tokAt(3), "; %var% = malloc ( %num% ) ;") ||
-                                             (Token::Match(tok3->tokAt(3), "; %var% = (") &&
-                                              Token::Match(tok3->tokAt(6)->link(), ") malloc ( %num% ) ;"))) &&
-                                            (tok3->strAt(4) == tok3->strAt(2)))
-                                        {
-                                            MathLib::bigint size;
+                                        MathLib::bigint size;
 
-                                            // find size of allocation
-                                            if (tok3->strAt(3) == "(") // has cast
-                                                size = MathLib::toLongNumber(tok3->tokAt(6)->link()->strAt(3));
-                                            else
-                                                size = MathLib::toLongNumber(tok3->strAt(8));
-
-                                            if (size != 100) // magic number for size of class or struct
-                                            {
-                                                /** @todo false negatives: only true if dynamically allocated with size larger that struct */
-                                                /** @todo false negatives: calculate real array size based on allocated size */
-                                                continue;
-                                            }
-                                        }
-
-                                        // size unknown so assume it is a dynamically sized struct
+                                        // find size of allocation
+                                        if (tok3->strAt(3) == "(") // has cast
+                                            size = MathLib::toLongNumber(tok3->tokAt(6)->link()->strAt(3));
                                         else
-                                            continue;
+                                            size = MathLib::toLongNumber(tok3->strAt(8));
+
+                                        // We don't calculate the size of a structure even when we know
+                                        // the size of the members.  We just assign a length of 100 for
+                                        // any struct.  If the size is less than 100, we assume the
+                                        // programmer knew the size and specified it rather than using
+                                        // sizeof(struct). If the size is greater than 100, we assume
+                                        // the programmer specified the size as sizeof(struct) + number.
+                                        // Either way, this is just a guess and could be wrong.  The
+                                        // information to make the right decision has been simplified
+                                        // away by the time we get here.
+                                        if (size != 100) // magic number for size of struct
+                                        {
+                                            // check if a real size was specified and give up
+                                            // malloc(10) rather than malloc(sizeof(struct))
+                                            if (size < 100)
+                                                continue;
+
+                                            // calculate real array size based on allocated size
+                                            MathLib::bigint elements = (size - 100) / arrayInfo.element_size();
+                                            arrayInfo.num(0, arrayInfo.num(0) + elements);
+                                        }
                                     }
+
+                                    // size unknown so assume it is a variable sized structure
+                                    else
+                                        continue;
                                 }
                             }
+                        }
 
-                            // Goto end of statement.
-                            const Token *CheckTok = NULL;
-                            while (tok3 && tok3 != func_scope->classEnd)
+                        // Goto end of statement.
+                        const Token *CheckTok = NULL;
+                        while (tok3 && tok3 != func_scope->classEnd)
+                        {
+                            // End of statement.
+                            if (tok3->str() == ";")
                             {
-                                // End of statement.
-                                if (tok3->str() == ";")
-                                {
-                                    CheckTok = tok3;
-                                    break;
-                                }
-
-                                // End of function declaration..
-                                if (Token::simpleMatch(tok3, ") ;"))
-                                    break;
-
-                                // Function implementation..
-                                if (Token::simpleMatch(tok3, ") {"))
-                                {
-                                    CheckTok = tok3->tokAt(2);
-                                    break;
-                                }
-
-                                tok3 = tok3->next();
+                                CheckTok = tok3;
+                                break;
                             }
 
-                            if (!tok3)
+                            // End of function declaration..
+                            if (Token::simpleMatch(tok3, ") ;"))
                                 break;
 
-                            if (!CheckTok)
-                                continue;
+                            // Function implementation..
+                            if (Token::simpleMatch(tok3, ") {"))
+                            {
+                                CheckTok = tok3->tokAt(2);
+                                break;
+                            }
 
-                            // Check variable usage..
-                            checkScope(CheckTok, varname, static_cast<int>(arrayInfo.num(0)), static_cast<int>(arrayInfo.num(0) * arrayInfo.element_size()), 0);
+                            tok3 = tok3->next();
                         }
+
+                        if (!tok3)
+                            break;
+
+                        if (!CheckTok)
+                            continue;
+
+                        // Check variable usage..
+                        ArrayInfo temp = arrayInfo;
+                        temp.varid(0); // do variable lookup by variable and member names rather than varid
+                        std::string varnames; // use class and member name for messages
+                        for (unsigned int i = 0; i < varname.size(); ++i)
+                            varnames += (i == 0 ? "" : ".") + varname[i];
+                        temp.varname(varnames);
+                        checkScope(CheckTok, varname, temp);
                     }
                 }
             }
