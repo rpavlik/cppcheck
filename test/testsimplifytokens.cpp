@@ -371,6 +371,7 @@ private:
         TEST_CASE(removeUnnecessaryQualification5);
         TEST_CASE(removeUnnecessaryQualification6); // ticket #2859
         TEST_CASE(removeUnnecessaryQualification7); // ticket #2970
+        TEST_CASE(removeUnnecessaryQualification8);
 
         TEST_CASE(simplifyIfNotNull);
         TEST_CASE(simplifyVarDecl1); // ticket # 2682 segmentation fault
@@ -383,7 +384,7 @@ private:
         TEST_CASE(removeRedundantFor);
     }
 
-    std::string tok(const char code[], bool simplify = true, Settings::PlatformType type = Settings::Host)
+    std::string tok(const char code[], bool simplify = true, Settings::PlatformType type = Settings::Unspecified)
     {
         errout.str("");
 
@@ -862,11 +863,12 @@ private:
 
 
     // Simplify 'sizeof'..
-    std::string sizeof_(const char code[], bool simplify = true)
+    std::string sizeof_(const char code[], bool simplify = true, Settings::PlatformType type = Settings::Unspecified)
     {
         errout.str("");
 
         Settings settings;
+        settings.platform(type);
 
         // tokenize..
         Tokenizer tokenizer(&settings, this);
@@ -975,7 +977,8 @@ private:
     {
         const char code[] = ";INT32 i[10];\n"
                             "sizeof(i[0]);\n";
-        ASSERT_EQUALS("; INT32 i [ 10 ] ; sizeof ( i [ 0 ] ) ;", sizeof_(code));
+        ASSERT_EQUALS("; INT32 i [ 10 ] ; sizeof ( i [ 0 ] ) ;", sizeof_(code, true, Settings::Unspecified));
+        ASSERT_EQUALS("; int i [ 10 ] ; 4 ;", sizeof_(code, true, Settings::Win32A));
     }
 
     void sizeof8()
@@ -1144,7 +1147,7 @@ private:
                             "compat_ulong_t um ; "
                             "long size ; size = sizeof ( m ) / sizeof ( um ) ;";
 
-        ASSERT_EQUALS(code, tok(code, true, Settings::Win32));
+        ASSERT_EQUALS(code, tok(code, true, Settings::Win32A));
     }
 
     void sizeof11()
@@ -2812,7 +2815,7 @@ private:
         {
             // Ticket #1997
             const char code[] = "void * operator new[](size_t);";
-            ASSERT_EQUALS("void * operatornew[] ( long ) ;", tok(code, true, Settings::Win32));
+            ASSERT_EQUALS("void * operatornew[] ( long ) ;", tok(code, true, Settings::Win32A));
         }
 
         ASSERT_EQUALS("; a [ 0 ] ;", tok(";a[0*(*p)];"));
@@ -7339,9 +7342,23 @@ private:
                             "    TProcedure::TProcedure(long endAddress) : m_lEndAddr(endAddress){}\n"
                             "private:\n"
                             "    long m_lEndAddr;\n"
-                            "}\n";
+                            "};\n";
         tok(code, false);
         ASSERT_EQUALS("[test.cpp:3]: (portability) Extra qualification 'TProcedure::' unnecessary and considered an error by many compilers.\n", errout.str());
+    }
+
+    void removeUnnecessaryQualification8()
+    {
+        const char code[] = "class Fred {\n"
+                            "public:\n"
+                            "    Fred & Fred::operator = (const Fred &);\n"
+                            "    void Fred::operator () (void);\n"
+                            "    void Fred::operator delete[](void* x);\n"
+                            "};\n";
+        tok(code, false);
+        ASSERT_EQUALS("[test.cpp:3]: (portability) Extra qualification 'Fred::' unnecessary and considered an error by many compilers.\n"
+                      "[test.cpp:4]: (portability) Extra qualification 'Fred::' unnecessary and considered an error by many compilers.\n"
+                      "[test.cpp:5]: (portability) Extra qualification 'Fred::' unnecessary and considered an error by many compilers.\n", errout.str());
     }
 
     void simplifyIfNotNull()

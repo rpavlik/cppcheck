@@ -619,8 +619,23 @@ public:
     void simplifyMicrosoftMFC();
 
     /**
-     * Remove Borland code
-     */
+    * Convert Microsoft memory functions
+    * CopyMemory(dst, src, len) -> memcpy(dst, src, len)
+    * FillMemory(dst, len, val) -> memset(dst, val, len)
+    * MoveMemory(dst, src, len) -> memmove(dst, src, len)
+    * ZeroMemory(dst, len) -> memset(dst, 0, len)
+    */
+    void simplifyMicrosoftMemoryFunctions();
+
+    /**
+    * Convert Microsoft string functions
+    * _tcscpy -> strcpy
+    */
+    void simplifyMicrosoftStringFunctions();
+
+    /**
+      * Remove Borland code
+      */
     void simplifyBorland();
 
     /**
@@ -693,6 +708,11 @@ public:
      * strncat(temp,"a",1); return temp;
      */
     void simplifyReturn();
+
+    /**
+     * Output list of unknown types.
+     */
+    void printUnknownTypes();
 
 private:
     /** Disable copy constructor, no implementation */

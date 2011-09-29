@@ -494,11 +494,11 @@ private:
 
         if (tok.str() == "return")
         {
-            // is there assignment in the return statement?
+            // is there assignment or ternary operator in the return statement?
             bool assignment = false;
             for (const Token *tok2 = tok.next(); tok2 && tok2->str() != ";"; tok2 = tok2->next())
             {
-                if (tok2->str() == "=" || tok2->str() == ">>")
+                if (tok2->str() == "=" || tok2->str() == ">>" || tok2->str() == "?")
                 {
                     assignment = true;
                     break;
@@ -651,7 +651,8 @@ private:
                 return tok.next()->link();
 
             // deallocate pointer
-            if (Token::Match(&tok, "free|kfree|fclose ( %var% )"))
+            if (Token::Match(&tok, "free|kfree|fclose ( %var% )") ||
+                Token::Match(&tok, "realloc ( %var%"))
             {
                 dealloc_pointer(checks, tok.tokAt(2));
                 return tok.tokAt(3);

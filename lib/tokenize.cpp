@@ -2547,6 +2547,12 @@ bool Tokenizer::tokenize(std::istream &code,
     // remove Microsoft MFC..
     simplifyMicrosoftMFC();
 
+    // convert Microsoft memory functions
+    simplifyMicrosoftMemoryFunctions();
+
+    // convert Microsoft string functions
+    simplifyMicrosoftStringFunctions();
+
     // Remove Qt signals and slots
     simplifyQtSignalsSlots();
 
@@ -4790,16 +4796,25 @@ bool Tokenizer::simplifyTokenList()
     removeRedundantAssignment();
 
     simplifyComma();
+
+    removeRedundantSemicolons();
+
+    if (!validate())
+        return false;
+
+    _tokens->assignProgressValues();
+
     if (_settings->debug)
     {
         _tokens->printOut(0, _files);
     }
 
-    _tokens->assignProgressValues();
+    if (_settings->debugwarnings)
+    {
+        printUnknownTypes();
+    }
 
-    removeRedundantSemicolons();
-
-    return validate();
+    return true;
 }
 //---------------------------------------------------------------------------
 
@@ -6639,7 +6654,8 @@ void Tokenizer::simplifyPlatformTypes()
         }
     }
 
-    if (_settings->platformType == Settings::Win32 ||
+    if (_settings->platformType == Settings::Win32A ||
+        _settings->platformType == Settings::Win32W ||
         _settings->platformType == Settings::Win64)
     {
         for (Token *tok = _tokens; tok; tok = tok->next())
@@ -6653,13 +6669,22 @@ void Tokenizer::simplifyPlatformTypes()
             }
             else if (tok->str() == "CHAR")
                 tok->str("char");
-            else if (Token::Match(tok, "DWORD"))
+            else if (Token::Match(tok, "DWORD|ULONG"))
             {
                 tok->str("unsigned");
                 tok->insertToken("long");
             }
+            else if (Token::Match(tok, "DWORD_PTR|ULONG_PTR|SIZE_T"))
+            {
+                tok->str("unsigned");
+                tok->insertToken("long");
+                if (_settings->platformType == Settings::Win64)
+                    tok->insertToken("long");
+            }
             else if (tok->str() == "FLOAT")
                 tok->str("float");
+            else if (tok->str() == "HRESULT")
+                tok->str("long");
             else if (tok->str() == "INT64")
             {
                 tok->str("long");
@@ -6667,6 +6692,12 @@ void Tokenizer::simplifyPlatformTypes()
             }
             else if (tok->str() == "LONG")
                 tok->str("long");
+            else if (tok->str() == "LONG_PTR")
+            {
+                tok->str("long");
+                if (_settings->platformType == Settings::Win64)
+                    tok->insertToken("long");
+            }
             else if (Token::Match(tok, "LPBOOL|PBOOL"))
             {
                 tok->str("int");
@@ -6711,7 +6742,7 @@ void Tokenizer::simplifyPlatformTypes()
                 tok->str("char");
                 tok->insertToken("*");
             }
-            else if (Token::Match(tok, "LPVOID|PVOID"))
+            else if (Token::Match(tok, "LPVOID|PVOID|HANDLE"))
             {
                 tok->str("void");
                 tok->insertToken("*");
@@ -6729,18 +6760,64 @@ void Tokenizer::simplifyPlatformTypes()
                 tok->str("unsigned");
                 tok->insertToken("int");
             }
-            else if (tok->str() == "ULONG")
+            else if (tok->str() == "UINT_PTR")
             {
                 tok->str("unsigned");
-                tok->insertToken("long");
+                if (_settings->platformType == Settings::Win64)
+                {
+                    tok->insertToken("long");
+                    tok->insertToken("long");
+                }
+                else
+                    tok->insertToken("long");
             }
-            else if (Token::Match(tok, "USHORT|WORD"))
+            else if (Token::Match(tok, "USHORT|WORD|WCHAR|wchar_t"))
             {
                 tok->str("unsigned");
                 tok->insertToken("short");
             }
             else if (tok->str() == "VOID")
                 tok->str("void");
+            else if (tok->str() == "TCHAR")
+            {
+                if (_settings->platformType == Settings::Win32A)
+                    tok->str("char");
+                else
+                {
+                    tok->str("unsigned");
+                    tok->insertToken("short");
+                }
+            }
+            else if (Token::Match(tok, "PTSTR|LPTSTR"))
+            {
+                if (_settings->platformType == Settings::Win32A)
+                {
+                    tok->str("char");
+                    tok->insertToken("*");
+                }
+                else
+                {
+                    tok->str("unsigned");
+                    tok->insertToken("*");
+                    tok->insertToken("short");
+                }
+            }
+            else if (Token::Match(tok, "PCTSTR|LPCTSTR"))
+            {
+                if (_settings->platformType == Settings::Win32A)
+                {
+                    tok->str("const");
+                    tok->insertToken("*");
+                    tok->insertToken("char");
+                }
+                else
+                {
+                    tok->str("const");
+                    tok->insertToken("*");
+                    tok->insertToken("short");
+                    tok->insertToken("unsigned");
+                }
+            }
         }
     }
 }
@@ -10394,7 +10471,8 @@ void Tokenizer::simplifyBuiltinExpect()
 void Tokenizer::simplifyMicrosoftMFC()
 {
     // skip if not Windows
-    if (!(_settings->platformType == Settings::Win32 ||
+    if (!(_settings->platformType == Settings::Win32A ||
+          _settings->platformType == Settings::Win32W ||
           _settings->platformType == Settings::Win64))
         return;
 
@@ -10416,6 +10494,282 @@ void Tokenizer::simplifyMicrosoftMFC()
     }
 }
 
+void Tokenizer::simplifyMicrosoftMemoryFunctions()
+{
+    // skip if not Windows
+    if (!(_settings->platformType == Settings::Win32A ||
+          _settings->platformType == Settings::Win32W ||
+          _settings->platformType == Settings::Win64))
+        return;
+
+    for (Token *tok = _tokens; tok; tok = tok->next())
+    {
+        if (Token::simpleMatch(tok, "CopyMemory ("))
+        {
+            tok->str("memcpy");
+        }
+        else if (Token::simpleMatch(tok, "MoveMemory ("))
+        {
+            tok->str("memmove");
+        }
+        else if (Token::simpleMatch(tok, "FillMemory ("))
+        {
+            // FillMemory(dst, len, val) -> memset(dst, val, len)
+            tok->str("memset");
+
+            // find first ','
+            Token *tok1 = tok->tokAt(2);
+            unsigned int level = 0;
+            while (tok1)
+            {
+                if (tok1->str() == "(")
+                    level++;
+                else if (tok1->str() == ")")
+                    level--;
+                else if (level == 0 && tok1->str() == ",")
+                    break;
+
+                tok1 = tok1->next();
+            }
+
+            // find second ','
+            if (tok1)
+            {
+                Token *tok2 = tok1->next();
+                level = 0;
+                while (tok2)
+                {
+                    if (tok2->str() == "(")
+                        level++;
+                    else if (tok2->str() == ")")
+                        level--;
+                    else if (level == 0 && tok2->str() == ",")
+                        break;
+
+                    tok2 = tok2->next();
+                }
+
+                // move second argument to third position
+                if (tok2)
+                {
+                    Token::move(tok1, tok2->previous(), tok->next()->link()->previous());
+                }
+            }
+        }
+        else if (Token::simpleMatch(tok, "ZeroMemory ("))
+        {
+            // ZeroMemory(dst, len) -> memset(dst, 0, len)
+            tok->str("memset");
+
+            Token *tok1 = tok->tokAt(2);
+            unsigned int level = 0;
+            while (tok1)
+            {
+                if (tok1->str() == "(")
+                    level++;
+                else if (tok1->str() == ")")
+                    level--;
+                else if (level == 0 && tok1->str() == ",")
+                    break;
+
+                tok1 = tok1->next();
+            }
+
+            if (tok1)
+            {
+                tok1->insertToken("0");
+                tok1 = tok1->next();
+                tok1->insertToken(",");
+            }
+        }
+    }
+}
+
+void Tokenizer::simplifyMicrosoftStringFunctions()
+{
+    // skip if not Windows
+    if (_settings->platformType == Settings::Win32A)
+    {
+        for (Token *tok = _tokens; tok; tok = tok->next())
+        {
+            if (Token::simpleMatch(tok, "_topen ("))
+            {
+                tok->str("open");
+            }
+            else if (Token::simpleMatch(tok, "_tfopen ("))
+            {
+                tok->str("fopen");
+            }
+            else if (Token::simpleMatch(tok, "_tcscat ("))
+            {
+                tok->str("strcat");
+            }
+            else if (Token::simpleMatch(tok, "_tcschr ("))
+            {
+                tok->str("strchr");
+            }
+            else if (Token::simpleMatch(tok, "_tcscmp ("))
+            {
+                tok->str("strcmp");
+            }
+            else if (Token::simpleMatch(tok, "_tcsdup ("))
+            {
+                tok->str("strdup");
+            }
+            else if (Token::simpleMatch(tok, "_tcscpy ("))
+            {
+                tok->str("strcpy");
+            }
+            else if (Token::simpleMatch(tok, "_tcslen ("))
+            {
+                tok->str("strlen");
+            }
+            else if (Token::simpleMatch(tok, "_tcsncat ("))
+            {
+                tok->str("strncat");
+            }
+            else if (Token::simpleMatch(tok, "_tcsncpy ("))
+            {
+                tok->str("strncpy");
+            }
+            else if (Token::simpleMatch(tok, "_tcsnlen ("))
+            {
+                tok->str("strnlen");
+            }
+            else if (Token::simpleMatch(tok, "_tcsrchr ("))
+            {
+                tok->str("strrchr");
+            }
+            else if (Token::simpleMatch(tok, "_tcsstr ("))
+            {
+                tok->str("strstr");
+            }
+            else if (Token::simpleMatch(tok, "_tcstok ("))
+            {
+                tok->str("strtok");
+            }
+            else if (Token::simpleMatch(tok, "_tprintf ("))
+            {
+                tok->str("printf");
+            }
+            else if (Token::simpleMatch(tok, "_stprintf ("))
+            {
+                tok->str("sprintf");
+            }
+            else if (Token::simpleMatch(tok, "_sntprintf ("))
+            {
+                tok->str("snprintf");
+            }
+            else if (Token::simpleMatch(tok, "_tscanf ("))
+            {
+                tok->str("scanf");
+            }
+            else if (Token::simpleMatch(tok, "_stscanf ("))
+            {
+                tok->str("sscanf");
+            }
+            else if (Token::Match(tok, "_T ( %str% )"))
+            {
+                tok->deleteThis();
+                tok->deleteThis();
+                tok->deleteNext();
+            }
+            else if (Token::Match(tok, "_T ( %any% )") && tok->strAt(2)[0] == '\'')
+            {
+                tok->deleteThis();
+                tok->deleteThis();
+                tok->deleteNext();
+            }
+        }
+    }
+    else if (_settings->platformType == Settings::Win32W ||
+             _settings->platformType == Settings::Win64)
+    {
+        for (Token *tok = _tokens; tok; tok = tok->next())
+        {
+            if (Token::simpleMatch(tok, "_tcscat ("))
+            {
+                tok->str("wcscat");
+            }
+            else if (Token::simpleMatch(tok, "_tcschr ("))
+            {
+                tok->str("wcschr");
+            }
+            else if (Token::simpleMatch(tok, "_tcscmp ("))
+            {
+                tok->str("wcscmp");
+            }
+            else if (Token::simpleMatch(tok, "_tcscpy ("))
+            {
+                tok->str("wcscpy");
+            }
+            else if (Token::simpleMatch(tok, "_tcsdup ("))
+            {
+                tok->str("wcsdup");
+            }
+            else if (Token::simpleMatch(tok, "_tcslen ("))
+            {
+                tok->str("wcslen");
+            }
+            else if (Token::simpleMatch(tok, "_tcsncat ("))
+            {
+                tok->str("wcsncat");
+            }
+            else if (Token::simpleMatch(tok, "_tcsncpy ("))
+            {
+                tok->str("wcsncpy");
+            }
+            else if (Token::simpleMatch(tok, "_tcsnlen ("))
+            {
+                tok->str("wcsnlen");
+            }
+            else if (Token::simpleMatch(tok, "_tcsrchr ("))
+            {
+                tok->str("wcsrchr");
+            }
+            else if (Token::simpleMatch(tok, "_tcsstr ("))
+            {
+                tok->str("wcsstr");
+            }
+            else if (Token::simpleMatch(tok, "_tcstok ("))
+            {
+                tok->str("wcstok");
+            }
+            else if (Token::simpleMatch(tok, "_tprintf ("))
+            {
+                tok->str("wprintf");
+            }
+            else if (Token::simpleMatch(tok, "_stprintf ("))
+            {
+                tok->str("swprintf");
+            }
+            else if (Token::simpleMatch(tok, "_sntprintf ("))
+            {
+                tok->str("snwprintf");
+            }
+            else if (Token::simpleMatch(tok, "_tscanf ("))
+            {
+                tok->str("wscanf");
+            }
+            else if (Token::simpleMatch(tok, "_stscanf ("))
+            {
+                tok->str("swscanf");
+            }
+            else if (Token::Match(tok, "_T ( %str% )"))
+            {
+                tok->deleteThis();
+                tok->deleteThis();
+                tok->deleteNext();
+            }
+            else if (Token::Match(tok, "_T ( %any% )") && tok->strAt(2)[0] == '\'')
+            {
+                tok->deleteThis();
+                tok->deleteThis();
+                tok->deleteNext();
+            }
+        }
+    }
+}
 
 // Remove Borland code
 void Tokenizer::simplifyBorland()
@@ -10635,32 +10989,54 @@ void Tokenizer::removeUnnecessaryQualification()
             if (tok == classInfo.back().classEnd)
                 classInfo.pop_back();
             else if (tok->str() == classInfo.back().className &&
-                     Token::Match(tok, "%type% :: %type% (") &&
-                     Token::Match(tok->tokAt(3)->link(), ") const| {|;|:") &&
-                     tok->previous()->str() != ":" && !classInfo.back().isNamespace)
+                     !classInfo.back().isNamespace && tok->previous()->str() != ":" &&
+                     (Token::Match(tok, "%type% :: %type% (") ||
+                      Token::Match(tok, "%type% :: operator")))
             {
-                std::string qualification = tok->str() + "::";
-
-                // check for extra qualification
-                /** @todo this should be made more generic to handle more levels */
-                if (Token::Match(tok->tokAt(-2), "%type% ::"))
+                int offset = 3;
+                if (tok->strAt(2) == "operator")
                 {
-                    if (classInfo.size() >= 2)
+                    const Token *tok1 = tok->tokAt(offset);
+
+                    // check for operator ()
+                    if (tok1->str() == "(")
                     {
-                        if (classInfo.at(classInfo.size() - 2).className != tok->strAt(-2))
-                            continue;
-                        else
-                            qualification = tok->strAt(-2) + "::" + qualification;
+                        tok1 = tok1->next();
+                        offset++;
                     }
-                    else
-                        continue;
+
+                    while (tok1 && tok1->str() != "(")
+                    {
+                        tok1 = tok1->next();
+                        offset++;
+                    }
                 }
 
-                if (_settings && _settings->isEnabled("portability"))
-                    unnecessaryQualificationError(tok, qualification);
+                if (Token::Match(tok->tokAt(offset)->link(), ") const| {|;|:"))
+                {
+                    std::string qualification = tok->str() + "::";
 
-                tok->deleteThis();
-                tok->deleteThis();
+                    // check for extra qualification
+                    /** @todo this should be made more generic to handle more levels */
+                    if (Token::Match(tok->tokAt(-2), "%type% ::"))
+                    {
+                        if (classInfo.size() >= 2)
+                        {
+                            if (classInfo.at(classInfo.size() - 2).className != tok->strAt(-2))
+                                continue;
+                            else
+                                qualification = tok->strAt(-2) + "::" + qualification;
+                        }
+                        else
+                            continue;
+                    }
+
+                    if (_settings && _settings->isEnabled("portability"))
+                        unnecessaryQualificationError(tok, qualification);
+
+                    tok->deleteThis();
+                    tok->deleteThis();
+                }
             }
         }
     }
@@ -10707,3 +11083,72 @@ void Tokenizer::simplifyReturn()
     }
 }
 
+void Tokenizer::printUnknownTypes()
+{
+    getSymbolDatabase();
+
+    std::set<std::string> unknowns;
+
+    for (size_t i = 1; i <= _varId; i++)
+    {
+        const Variable *var = _symbolDatabase->getVariableFromVarId(i);
+
+        // is unknown record type?
+        if (var && var->isClass() && !var->type())
+        {
+            std::string    name;
+
+            // single token type?
+            if (var->typeStartToken() == var->typeEndToken())
+                name = var->typeStartToken()->str();
+
+            // complcated type
+            else
+            {
+                const Token *tok = var->typeStartToken();
+                int level = 0;
+
+                while (tok)
+                {
+                    // skip pointer and reference part of type
+                    if (level == 0 && (tok->str() ==  "*" || tok->str() == "&"))
+                        break;
+
+                    name += tok->str();
+
+                    if (Token::Match(tok, "struct|union"))
+                        name += " ";
+
+                    // pointers and referennces are OK in template
+                    else if (tok->str() == "<")
+                        level++;
+                    else if (tok->str() == ">")
+                        level--;
+
+                    if (tok == var->typeEndToken())
+                        break;
+
+                    tok = tok->next();
+                }
+            }
+
+            unknowns.insert(name);
+        }
+    }
+
+    if (!unknowns.empty())
+    {
+        std::ostringstream ss;
+
+        ss << unknowns.size() << " unknown types:" << std::endl;
+
+        std::set<std::string>::const_iterator it;
+        size_t count = 1;
+
+        for (it = unknowns.begin(); it != unknowns.end(); ++it, ++count)
+            ss << count << ": " << *it << std::endl;
+
+        if (_errorLogger)
+            _errorLogger->reportOut(ss.str());
+    }
+}

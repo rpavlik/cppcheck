@@ -319,6 +319,7 @@ private:
         TEST_CASE(bitfields11); // ticket #2845 (segmentation fault)
 
         TEST_CASE(microsoftMFC);
+        TEST_CASE(microsoftMemory);
 
         TEST_CASE(borland);
 
@@ -360,6 +361,8 @@ private:
         TEST_CASE(removeRedundantCodeAfterReturn);
 
         TEST_CASE(platformWin32);
+        TEST_CASE(platformWin32A);
+        TEST_CASE(platformWin32W);
         TEST_CASE(platformWin64);
         TEST_CASE(platformUnix32);
         TEST_CASE(platformUnix64);
@@ -378,7 +381,7 @@ private:
     }
 
 
-    std::string tokenizeAndStringify(const char code[], bool simplify = false, bool expand = true, Settings::PlatformType platform = Settings::Host)
+    std::string tokenizeAndStringify(const char code[], bool simplify = false, bool expand = true, Settings::PlatformType platform = Settings::Unspecified)
     {
         errout.str("");
 
@@ -4013,7 +4016,7 @@ private:
         const char code[] = "struct foo {\n"
                             "    void operator delete(void *obj, size_t sz);\n"
                             "}\n";
-        const std::string actual(tokenizeAndStringify(code, false, true, Settings::Win32));
+        const std::string actual(tokenizeAndStringify(code, false, true, Settings::Win32A));
 
         const char expected[] = "struct foo {\n"
                                 "void operatordelete ( void * obj , unsigned long sz ) ;\n"
@@ -5544,16 +5547,37 @@ private:
     void microsoftMFC()
     {
         const char code1[] = "class MyDialog : public CDialog { DECLARE_MESSAGE_MAP() private: CString text; };";
-        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code1,false,true,Settings::Win32));
+        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code1,false,true,Settings::Win32A));
 
         const char code2[] = "class MyDialog : public CDialog { DECLARE_DYNAMIC(MyDialog) private: CString text; };";
-        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code2,false,true,Settings::Win32));
+        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code2,false,true,Settings::Win32A));
 
         const char code3[] = "class MyDialog : public CDialog { DECLARE_DYNCREATE(MyDialog) private: CString text; };";
-        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code3,false,true,Settings::Win32));
+        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code3,false,true,Settings::Win32A));
 
         const char code4[] = "class MyDialog : public CDialog { DECLARE_DYNAMIC_CLASS(MyDialog) private: CString text; };";
-        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code4,false,true,Settings::Win32));
+        ASSERT_EQUALS("class MyDialog : public CDialog { private: CString text ; } ;", tokenizeAndStringify(code4,false,true,Settings::Win32A));
+    }
+
+    void microsoftMemory()
+    {
+        const char code1[] = "void foo() { int a[10], b[10]; CopyMemory(a, b, sizeof(a)); }";
+        ASSERT_EQUALS("void foo ( ) { int a [ 10 ] ; int b [ 10 ] ; memcpy ( a , b , sizeof ( a ) ) ; }", tokenizeAndStringify(code1,false,true,Settings::Win32A));
+
+        const char code2[] = "void foo() { int a[10]; FillMemory(a, sizeof(a), 255); }";
+        ASSERT_EQUALS("void foo ( ) { int a [ 10 ] ; memset ( a , 255 , sizeof ( a ) ) ; }", tokenizeAndStringify(code2,false,true,Settings::Win32A));
+
+        const char code3[] = "void foo() { int a[10], b[10]; MoveMemory(a, b, sizeof(a)); }";
+        ASSERT_EQUALS("void foo ( ) { int a [ 10 ] ; int b [ 10 ] ; memmove ( a , b , sizeof ( a ) ) ; }", tokenizeAndStringify(code3,false,true,Settings::Win32A));
+
+        const char code4[] = "void foo() { int a[10]; ZeroMemory(a, sizeof(a)); }";
+        ASSERT_EQUALS("void foo ( ) { int a [ 10 ] ; memset ( a , 0 , sizeof ( a ) ) ; }", tokenizeAndStringify(code4,false,true,Settings::Win32A));
+
+        const char code5[] = "void foo() { ZeroMemory(f(1, g(a, b)), h(i, j(0, 1))); }";
+        ASSERT_EQUALS("void foo ( ) { memset ( f ( 1 , g ( a , b ) ) , 0 , h ( i , j ( 0 , 1 ) ) ) ; }", tokenizeAndStringify(code5,false,true,Settings::Win32A));
+
+        const char code6[] = "void foo() { FillMemory(f(1, g(a, b)), h(i, j(0, 1)), 255); }";
+        ASSERT_EQUALS("void foo ( ) { memset ( f ( 1 , g ( a , b ) ) , 255 , h ( i , j ( 0 , 1 ) ) ) ; }", tokenizeAndStringify(code6,false,true,Settings::Win32A));
     }
 
     void borland()
@@ -5996,7 +6020,13 @@ private:
                             "PSTR K;"
                             "PCHAR L;"
                             "LPVOID M;"
-                            "PVOID N;";
+                            "PVOID N;"
+                            "DWORD_PTR O;"
+                            "ULONG_PTR P;"
+                            "SIZE_T Q;"
+                            "HRESULT R;"
+                            "LONG_PTR S;"
+                            "HANDLE T;";
 
         const char expected[] = "unsigned int sizeof_short ; sizeof_short = 2 ; "
                                 "unsigned int sizeof_unsigned_short ; sizeof_unsigned_short = 2 ; "
@@ -6051,9 +6081,105 @@ private:
                                 "char * K ; "
                                 "char * L ; "
                                 "void * M ; "
-                                "void * N ;";
+                                "void * N ; "
+                                "unsigned long O ; "
+                                "unsigned long P ; "
+                                "unsigned long Q ; "
+                                "long R ; "
+                                "long S ; "
+                                "void * T ;";
 
-        ASSERT_EQUALS(expected, tokenizeAndStringify(code, true, true, Settings::Win32));
+        ASSERT_EQUALS(expected, tokenizeAndStringify(code, true, true, Settings::Win32A));
+    }
+
+    void platformWin32A()
+    {
+        const char code[] = "wchar_t wc;"
+                            "TCHAR c;"
+                            "PTSTR ptstr;"
+                            "LPTSTR lptstr;"
+                            "PCTSTR pctstr;"
+                            "LPCTSTR lpctstr;"
+                            "void foo() {"
+                            "    TCHAR tc = _T(\'c\'); "
+                            "    TCHAR src[10] = _T(\"123456789\");"
+                            "    TCHAR dst[10];"
+                            "    _tcscpy(dst, src);"
+                            "    dst[0] = 0;"
+                            "    _tcscat(dst, src);"
+                            "    LPTSTR d = _tcsdup(str);"
+                            "    _tprintf(_T(\"Hello world!\n\"));"
+                            "    _stprintf(dst, _T(\"Hello!\n\"));"
+                            "    _sntprintf(dst, sizeof(dst) / sizeof(TCHAR), _T(\"Hello world!\n\"));"
+                            "    _tscanf(_T(\"%s\"), dst);"
+                            "    _stscanf(dst, _T(\"%s\"), dst);"
+                            "}";
+        const char expected[] = "unsigned short wc ; "
+                                "char c ; "
+                                "char * ptstr ; "
+                                "char * lptstr ; "
+                                "const char * pctstr ; "
+                                "const char * lpctstr ; "
+                                "void foo ( ) { "
+                                "char tc ; tc = \'c\' ; "
+                                "char src [ 10 ] = \"123456789\" ; "
+                                "char dst [ 10 ] ; "
+                                "strcpy ( dst , src ) ; "
+                                "dst [ 0 ] = 0 ; "
+                                "strcat ( dst , src ) ; "
+                                "char * d ; d = strdup ( str ) ; "
+                                "printf ( \"Hello world!\n\" ) ; "
+                                "sprintf ( dst , \"Hello!\n\" ) ; "
+                                "snprintf ( dst , sizeof ( dst ) / sizeof ( char ) , \"Hello world!\n\" ) ; "
+                                "scanf ( \"%s\" , dst ) ; "
+                                "sscanf ( dst , \"%s\" , dst ) ; "
+                                "}";
+        ASSERT_EQUALS(expected, tokenizeAndStringify(code, false, true, Settings::Win32A));
+    }
+
+    void platformWin32W()
+    {
+        const char code[] = "wchar_t wc;"
+                            "TCHAR c;"
+                            "PTSTR ptstr;"
+                            "LPTSTR lptstr;"
+                            "PCTSTR pctstr;"
+                            "LPCTSTR lpctstr;"
+                            "void foo() {"
+                            "    TCHAR tc = _T(\'c\');"
+                            "    TCHAR src[10] = _T(\"123456789\");"
+                            "    TCHAR dst[10];"
+                            "    _tcscpy(dst, src);"
+                            "    dst[0] = 0;"
+                            "    _tcscat(dst, src);"
+                            "    LPTSTR d = _tcsdup(str);"
+                            "    _tprintf(_T(\"Hello world!\n\"));"
+                            "    _stprintf(dst, _T(\"Hello!\n\"));"
+                            "    _sntprintf(dst, sizeof(dst) / sizeof(TCHAR), _T(\"Hello world!\n\"));"
+                            "    _tscanf(_T(\"%s\"), dst);"
+                            "    _stscanf(dst, _T(\"%s\"), dst);"
+                            "}";
+        const char expected[] = "unsigned short wc ; "
+                                "unsigned short c ; "
+                                "unsigned short * ptstr ; "
+                                "unsigned short * lptstr ; "
+                                "const unsigned short * pctstr ; "
+                                "const unsigned short * lpctstr ; "
+                                "void foo ( ) { "
+                                "unsigned short tc ; tc = \'c\' ; "
+                                "unsigned short src [ 10 ] = \"123456789\" ; "
+                                "unsigned short dst [ 10 ] ; "
+                                "wcscpy ( dst , src ) ; "
+                                "dst [ 0 ] = 0 ; "
+                                "wcscat ( dst , src ) ; "
+                                "unsigned short * d ; d = wcsdup ( str ) ; "
+                                "wprintf ( \"Hello world!\n\" ) ; "
+                                "swprintf ( dst , \"Hello!\n\" ) ; "
+                                "snwprintf ( dst , sizeof ( dst ) / sizeof ( unsigned short ) , \"Hello world!\n\" ) ; "
+                                "wscanf ( \"%s\" , dst ) ; "
+                                "swscanf ( dst , \"%s\" , dst ) ; "
+                                "}";
+        ASSERT_EQUALS(expected, tokenizeAndStringify(code, false, true, Settings::Win32W));
     }
 
     void platformWin64()
@@ -6076,7 +6202,13 @@ private:
                             "ssize_t b;"
                             "ptrdiff_t c;"
                             "intptr_t d;"
-                            "uintptr_t e;";
+                            "uintptr_t e;"
+                            "DWORD_PTR O;"
+                            "ULONG_PTR P;"
+                            "SIZE_T Q;"
+                            "HRESULT R;"
+                            "LONG_PTR S;"
+                            "HANDLE T;";
 
         const char expected[] = "unsigned int sizeof_short ; sizeof_short = 2 ; "
                                 "unsigned int sizeof_unsigned_short ; sizeof_unsigned_short = 2 ; "
@@ -6096,7 +6228,13 @@ private:
                                 "long long b ; "
                                 "long long c ; "
                                 "long long d ; "
-                                "unsigned long long e ;";
+                                "unsigned long long e ; "
+                                "unsigned long long O ; "
+                                "unsigned long long P ; "
+                                "unsigned long long Q ; "
+                                "long R ; "
+                                "long long S ; "
+                                "void * T ;";
 
         ASSERT_EQUALS(expected, tokenizeAndStringify(code, true, true, Settings::Win64));
     }
