@@ -185,6 +185,7 @@ private:
         TEST_CASE(const52); // ticket #3049
         TEST_CASE(const53); // ticket #3052
         TEST_CASE(const54);
+        TEST_CASE(const55); // ticket #3149
         TEST_CASE(assigningPointerToPointerIsNotAConstOperation);
         TEST_CASE(assigningArrayElementIsNotAConstOperation);
         TEST_CASE(constoperator1);  // operator< can often be const
@@ -3636,18 +3637,18 @@ private:
                    "    int a;\n"
                    "    int getA() { return a; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::getA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::getA' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    const std::string foo() { return ""; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:2]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:2]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    std::string s;\n"
                    "    const std::string & foo() { return ""; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // constructors can't be const..
         checkConst("class Fred {\n"
@@ -3703,7 +3704,7 @@ private:
                    "    std::string s;\n"
                    "    void foo(std::string & a) { a = s; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable can't be const
         checkConst("class Fred {\n"
@@ -3717,7 +3718,7 @@ private:
                    "    std::string s;\n"
                    "    void foo(std::string & a, std::string & b) { a = s; b = s; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable, can't be const
         checkConst("class Fred {\n"
@@ -3748,7 +3749,7 @@ private:
                    "    int s;\n"
                    "    void foo(int * a) { *a = s; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable, can't be const
         checkConst("class Fred {\n"
@@ -3762,7 +3763,7 @@ private:
                    "    std::string s;\n"
                    "    void foo(std::string * a, std::string * b) { *a = s; *b = s; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable, can't be const
         checkConst("class Fred {\n"
@@ -3793,20 +3794,20 @@ private:
                    "    int getA();\n"
                    "};\n"
                    "int Fred::getA() { return a; }");
-        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (information) Technically the member function 'Fred::getA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (style) Technically the member function 'Fred::getA' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    const std::string foo();\n"
                    "};\n"
                    "const std::string Fred::foo() { return ""; }");
-        ASSERT_EQUALS("[test.cpp:4] -> [test.cpp:2]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4] -> [test.cpp:2]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    std::string s;\n"
                    "    const std::string & foo();\n"
                    "};\n"
                    "const std::string & Fred::foo() { return ""; }");
-        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // constructors can't be const..
         checkConst("class Fred {\n"
@@ -3858,7 +3859,7 @@ private:
                    "    void foo(std::string & a);\n"
                    "};\n"
                    "void Fred::foo(std::string & a) { a = s; }");
-        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable can't be const
         checkConst("class Fred {\n"
@@ -3874,7 +3875,7 @@ private:
                    "    void foo(std::string & a, std::string & b);\n"
                    "};\n"
                    "void Fred::foo(std::string & a, std::string & b) { a = s; b = s; }");
-        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable, can't be const
         checkConst("class Fred {\n"
@@ -3906,7 +3907,7 @@ private:
                    "    void foo(int * a);\n"
                    "};\n"
                    "void Fred::foo(int * a) { *a = s; }");
-        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable, can't be const
         checkConst("class Fred {\n"
@@ -3922,7 +3923,7 @@ private:
                    "    void foo(std::string * a, std::string * b);\n"
                    "};\n"
                    "void Fred::foo(std::string * a, std::string * b) { *a = s; *b = s; }");
-        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // assignment to variable, can't be const
         checkConst("class Fred {\n"
@@ -3958,8 +3959,8 @@ private:
                    "void Fred::foo() { }"
                    "void Fred::foo(std::string & a) { a = s; }"
                    "void Fred::foo(const std::string & a) { s = a; }");
-        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo' can be const.\n"
-                      "[test.cpp:7] -> [test.cpp:4]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo' can be const.\n"
+                      "[test.cpp:7] -> [test.cpp:4]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         // check functions with different or missing parameter names
         checkConst("class Fred {\n"
@@ -3975,11 +3976,11 @@ private:
                    "void Fred::foo3(int a, int b) { }\n"
                    "void Fred::foo4(int a, int b) { }\n"
                    "void Fred::foo5(int, int) { }");
-        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:3]: (information) Technically the member function 'Fred::foo1' can be const.\n"
-                      "[test.cpp:10] -> [test.cpp:4]: (information) Technically the member function 'Fred::foo2' can be const.\n"
-                      "[test.cpp:11] -> [test.cpp:5]: (information) Technically the member function 'Fred::foo3' can be const.\n"
-                      "[test.cpp:12] -> [test.cpp:6]: (information) Technically the member function 'Fred::foo4' can be const.\n"
-                      "[test.cpp:13] -> [test.cpp:7]: (information) Technically the member function 'Fred::foo5' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:3]: (style) Technically the member function 'Fred::foo1' can be const.\n"
+                      "[test.cpp:10] -> [test.cpp:4]: (style) Technically the member function 'Fred::foo2' can be const.\n"
+                      "[test.cpp:11] -> [test.cpp:5]: (style) Technically the member function 'Fred::foo3' can be const.\n"
+                      "[test.cpp:12] -> [test.cpp:6]: (style) Technically the member function 'Fred::foo4' can be const.\n"
+                      "[test.cpp:13] -> [test.cpp:7]: (style) Technically the member function 'Fred::foo5' can be const.\n", errout.str());
 
         // check nested classes
         checkConst("class Fred {\n"
@@ -3988,7 +3989,7 @@ private:
                    "        int getA() { return a; }\n"
                    "    };\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'Fred::A::getA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'Fred::A::getA' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    class A {\n"
@@ -3997,7 +3998,7 @@ private:
                    "    };\n"
                    "    int A::getA() { return a; }\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:6] -> [test.cpp:4]: (information) Technically the member function 'Fred::A::getA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:6] -> [test.cpp:4]: (style) Technically the member function 'Fred::A::getA' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    class A {\n"
@@ -4006,7 +4007,7 @@ private:
                    "    };\n"
                    "};\n"
                    "int Fred::A::getA() { return a; }");
-        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:4]: (information) Technically the member function 'Fred::A::getA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:4]: (style) Technically the member function 'Fred::A::getA' can be const.\n", errout.str());
 
         // check deeply nested classes
         checkConst("class Fred {\n"
@@ -4019,8 +4020,8 @@ private:
                    "        };\n"
                    "    };\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'Fred::B::getB' can be const.\n"
-                      "[test.cpp:7]: (information) Technically the member function 'Fred::B::A::getA' can be const.\n"
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'Fred::B::getB' can be const.\n"
+                      "[test.cpp:7]: (style) Technically the member function 'Fred::B::A::getA' can be const.\n"
                       , errout.str());
 
         checkConst("class Fred {\n"
@@ -4035,8 +4036,8 @@ private:
                    "    };\n"
                    "    int B::getB() { return b; }\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:4]: (information) Technically the member function 'Fred::B::getB' can be const.\n"
-                      "[test.cpp:9] -> [test.cpp:7]: (information) Technically the member function 'Fred::B::A::getA' can be const.\n" , errout.str());
+        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:4]: (style) Technically the member function 'Fred::B::getB' can be const.\n"
+                      "[test.cpp:9] -> [test.cpp:7]: (style) Technically the member function 'Fred::B::A::getA' can be const.\n" , errout.str());
 
         checkConst("class Fred {\n"
                    "    class B {\n"
@@ -4050,8 +4051,8 @@ private:
                    "    int B::A::getA() { return a; }\n"
                    "    int B::getB() { return b; }\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:4]: (information) Technically the member function 'Fred::B::getB' can be const.\n"
-                      "[test.cpp:10] -> [test.cpp:7]: (information) Technically the member function 'Fred::B::A::getA' can be const.\n" , errout.str());
+        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:4]: (style) Technically the member function 'Fred::B::getB' can be const.\n"
+                      "[test.cpp:10] -> [test.cpp:7]: (style) Technically the member function 'Fred::B::A::getA' can be const.\n" , errout.str());
 
         checkConst("class Fred {\n"
                    "    class B {\n"
@@ -4065,8 +4066,8 @@ private:
                    "};\n"
                    "int Fred::B::A::getA() { return a; }\n"
                    "int Fred::B::getB() { return b; }\n");
-        ASSERT_EQUALS("[test.cpp:12] -> [test.cpp:4]: (information) Technically the member function 'Fred::B::getB' can be const.\n"
-                      "[test.cpp:11] -> [test.cpp:7]: (information) Technically the member function 'Fred::B::A::getA' can be const.\n" , errout.str());
+        ASSERT_EQUALS("[test.cpp:12] -> [test.cpp:4]: (style) Technically the member function 'Fred::B::getB' can be const.\n"
+                      "[test.cpp:11] -> [test.cpp:7]: (style) Technically the member function 'Fred::B::A::getA' can be const.\n" , errout.str());
     }
 
     // operator< can often be const
@@ -4076,7 +4077,7 @@ private:
                    "    int a;\n"
                    "    bool operator<(const Fred &f) { return (a < f.a); }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::operator<' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::operator<' can be const.\n", errout.str());
     }
 
     // operator<<
@@ -4108,7 +4109,7 @@ private:
                    "    int array[10];\n"
                    "    int const & operator [] (unsigned int index) { return array[index]; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::operator[]' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::operator[]' can be const.\n", errout.str());
     }
 
     void constoperator4()
@@ -4118,7 +4119,7 @@ private:
                    "    typedef int* (Fred::*UnspecifiedBoolType);\n"
                    "    operator UnspecifiedBoolType() { };\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'Fred::operatorint**' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'Fred::operatorint**' can be const.\n", errout.str());
 
         checkConst("struct Fred {\n"
                    "    int array[10];\n"
@@ -4140,7 +4141,7 @@ private:
                    "        return same;\n"
                    "    }\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'A::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'A::foo' can be const.\n", errout.str());
     }
 
     void const6()
@@ -4157,7 +4158,7 @@ private:
                    "public:\n"
                    "    void foo() { }\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'Fred::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'Fred::foo' can be const.\n", errout.str());
 
         checkConst("struct fast_string\n"
                    "{\n"
@@ -4196,7 +4197,7 @@ private:
                    "private:\n"
                    "    std::string m_strValue;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::strGetString' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::strGetString' can be const.\n", errout.str());
     }
 
     void const9()
@@ -4260,7 +4261,7 @@ private:
                    "private:\n"
                    "    mutable int x;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'A::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'A::foo' can be const.\n", errout.str());
     }
 
     void const13()
@@ -4275,8 +4276,8 @@ private:
                    "    std::vector<int> m_vec;\n"
                    "    std::pair<int,double> m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetVec' can be const.\n"
-                      "[test.cpp:5]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetVec' can be const.\n"
+                      "[test.cpp:5]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4287,8 +4288,8 @@ private:
                    "    std::vector<int> m_vec;\n"
                    "    std::pair<int,double> m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetVec' can be const.\n"
-                      "[test.cpp:5]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetVec' can be const.\n"
+                      "[test.cpp:5]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
     }
 
     void const14()
@@ -4301,7 +4302,7 @@ private:
                    "private:\n"
                    "    std::pair<std::vector<int>,double> m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4310,7 +4311,7 @@ private:
                    "private:\n"
                    "    std::pair<std::vector<int>,double> m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4330,7 +4331,7 @@ private:
                    "private:\n"
                    "    pair<int ,double> m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4340,7 +4341,7 @@ private:
                    "private:\n"
                    "    pair<int ,double> m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4360,7 +4361,7 @@ private:
                    "private:\n"
                    "    std::pair< int,std::vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4369,7 +4370,7 @@ private:
                    "private:\n"
                    "    std::pair< int,std::vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4389,7 +4390,7 @@ private:
                    "private:\n"
                    "    pair< int,vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4399,7 +4400,7 @@ private:
                    "private:\n"
                    "    pair< int,vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4420,7 +4421,7 @@ private:
                    "private:\n"
                    "    pair< vector<int>, int >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4430,7 +4431,7 @@ private:
                    "private:\n"
                    "    pair< vector<int>, int >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4449,7 +4450,7 @@ private:
                    "private:\n"
                    "    std::pair< std::vector<int>,std::vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4458,7 +4459,7 @@ private:
                    "private:\n"
                    "    std::pair< std::vector<int>,std::vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4478,7 +4479,7 @@ private:
                    "private:\n"
                    "    pair< vector<int>, vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4488,7 +4489,7 @@ private:
                    "private:\n"
                    "    pair< vector<int>, vector<int> >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4509,7 +4510,7 @@ private:
                    "private:\n"
                    "    std::pair< std::pair < int, char > , int >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4518,7 +4519,7 @@ private:
                    "private:\n"
                    "    std::pair< std::pair < int, char > , int >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4537,7 +4538,7 @@ private:
                    "private:\n"
                    "    pair< pair < int, char > , int >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4547,7 +4548,7 @@ private:
                    "private:\n"
                    "    pair< pair < int, char > , int >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4568,7 +4569,7 @@ private:
                    "private:\n"
                    "    pair< int , pair < int, char > >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4578,7 +4579,7 @@ private:
                    "private:\n"
                    "    pair< int , pair < int, char > >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
 
         checkConst("using namespace std;"
@@ -4598,7 +4599,7 @@ private:
                    "private:\n"
                    "    std::pair< int , std::pair < int, char > >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4607,7 +4608,7 @@ private:
                    "private:\n"
                    "    std::pair< int , std::pair < int, char > >  m_pair;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetPair' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetPair' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4627,7 +4628,7 @@ private:
                    "private:\n"
                    "    vector<int>  m_Vec;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetVec' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetVec' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4637,7 +4638,7 @@ private:
                    "private:\n"
                    "    vector<int>  m_Vec;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::GetVec' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::GetVec' can be const.\n", errout.str());
 
         checkConst("using namespace std;"
                    "class A {\n"
@@ -4664,7 +4665,7 @@ private:
                    "private:\n"
                    "    const int * x;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'A::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'A::foo' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -4672,7 +4673,7 @@ private:
                    "private:\n"
                    "    const int * x;\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'A::foo' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'A::foo' can be const.\n", errout.str());
     }
 
     void const15()
@@ -4681,7 +4682,7 @@ private:
                    "    unsigned long long int a;\n"
                    "    unsigned long long int getA() { return a; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::getA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::getA' can be const.\n", errout.str());
 
         // constructors can't be const..
         checkConst("class Fred {\n"
@@ -4785,7 +4786,7 @@ private:
                    "public:\n"
                    "    list<const int *> get() { return x; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'Fred::get' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'Fred::get' can be const.\n", errout.str());
 
         checkConst("class Fred {\n"
                    "    std::list<std::string &> x;\n"
@@ -4799,7 +4800,7 @@ private:
                    "public:\n"
                    "    std::list<const std::string &> get() { return x; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'Fred::get' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'Fred::get' can be const.\n", errout.str());
     }
 
     void const21()
@@ -4892,7 +4893,7 @@ private:
                    "std::string m_strVal;\n"
                    "};\n"
                   );
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::strGetString' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::strGetString' can be const.\n", errout.str());
 
         checkConst("class A{\n"
                    "public:\n"
@@ -4903,7 +4904,7 @@ private:
                    "std::string m_strVal;\n"
                    "};\n"
                   );
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::strGetString1' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::strGetString1' can be const.\n", errout.str());
 
         checkConst("class A{\n"
                    "public:\n"
@@ -4914,7 +4915,7 @@ private:
                    "std::vector<std::string> m_strVec;\n"
                    "};\n"
                   );
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::strGetSize' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::strGetSize' can be const.\n", errout.str());
 
         checkConst("class A{\n"
                    "public:\n"
@@ -4925,7 +4926,7 @@ private:
                    "std::vector<std::string> m_strVec;\n"
                    "};\n"
                   );
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'A::strGetEmpty' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'A::strGetEmpty' can be const.\n", errout.str());
     }
 
     void const26() // ticket #1847
@@ -4958,7 +4959,7 @@ private:
                    "    return dRet;\n"
                    "};\n"
                   );
-        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:4]: (information) Technically the member function 'A::dGetValue' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:4]: (style) Technically the member function 'A::dGetValue' can be const.\n", errout.str());
     }
 
     void const28() // ticket #1883
@@ -4997,7 +4998,7 @@ private:
                    "        UnknownScope::x = x_;\n"
                    "    }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:4]: (information) Technically the member function 'AA::vSetXPos' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:4]: (style) Technically the member function 'AA::vSetXPos' can be const.\n", errout.str());
 
     }
 
@@ -5039,7 +5040,7 @@ private:
                    "        return a;\n"
                    "    }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:7]: (information) Technically the member function 'Derived::get' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7]: (style) Technically the member function 'Derived::get' can be const.\n", errout.str());
 
         checkConst("class Base1 {\n"
                    "public:\n"
@@ -5058,8 +5059,8 @@ private:
                    "        return b;\n"
                    "    }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:11]: (information) Technically the member function 'Derived::getA' can be const.\n"
-                      "[test.cpp:14]: (information) Technically the member function 'Derived::getB' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:11]: (style) Technically the member function 'Derived::getA' can be const.\n"
+                      "[test.cpp:14]: (style) Technically the member function 'Derived::getB' can be const.\n", errout.str());
 
         checkConst("class Base {\n"
                    "public:\n"
@@ -5072,7 +5073,7 @@ private:
                    "        return a;\n"
                    "    }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:8]: (information) Technically the member function 'Derived2::get' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:8]: (style) Technically the member function 'Derived2::get' can be const.\n", errout.str());
 
         checkConst("class Base {\n"
                    "public:\n"
@@ -5087,7 +5088,7 @@ private:
                    "        return a;\n"
                    "    }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:10]: (information) Technically the member function 'Derived4::get' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:10]: (style) Technically the member function 'Derived4::get' can be const.\n", errout.str());
 
         // check for false positives
         checkConst("class Base {\n"
@@ -5158,7 +5159,7 @@ private:
                    "    int a;\n"
                    "    int get() { return a; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:5]: (information) Technically the member function 'Fred::get' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5]: (style) Technically the member function 'Fred::get' can be const.\n", errout.str());
     }
 
     void const32()
@@ -5207,7 +5208,7 @@ private:
                    "                int var;\n"
                    "        };\n"
                    "}\n");
-        ASSERT_EQUALS("[test.cpp:12]: (information) Technically the member function 'N::Derived::getResourceName' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:12]: (style) Technically the member function 'N::Derived::getResourceName' can be const.\n", errout.str());
 
         checkConst("namespace N\n"
                    "{\n"
@@ -5219,7 +5220,7 @@ private:
                    "        };\n"
                    "}\n"
                    "int N::Base::getResourceName() { return var; }\n");
-        ASSERT_EQUALS("[test.cpp:10] -> [test.cpp:6]: (information) Technically the member function 'N::Base::getResourceName' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:10] -> [test.cpp:6]: (style) Technically the member function 'N::Base::getResourceName' can be const.\n", errout.str());
 
         checkConst("namespace N\n"
                    "{\n"
@@ -5234,7 +5235,7 @@ private:
                    "{\n"
                    "        int Base::getResourceName() { return var; }\n"
                    "}\n");
-        ASSERT_EQUALS("[test.cpp:12] -> [test.cpp:6]: (information) Technically the member function 'N::Base::getResourceName' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:12] -> [test.cpp:6]: (style) Technically the member function 'N::Base::getResourceName' can be const.\n", errout.str());
 
         checkConst("namespace N\n"
                    "{\n"
@@ -5247,7 +5248,7 @@ private:
                    "}\n"
                    "using namespace N;\n"
                    "int Base::getResourceName() { return var; }\n");
-        TODO_ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:6]: (information) Technically the member function 'N::Base::getResourceName' can be const.\n",
+        TODO_ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:6]: (style) Technically the member function 'N::Base::getResourceName' can be const.\n",
                            "", errout.str());
     }
 
@@ -5277,7 +5278,7 @@ private:
                    "private:\n"
                    "    std::string m_str;\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:5]: (information) Technically the member function 'A::operator+' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5]: (style) Technically the member function 'A::operator+' can be const.\n", errout.str());
 
         checkConst("class Fred\n"
                    "{\n"
@@ -5291,7 +5292,7 @@ private:
                    "        return bool(x == 0x11224488);\n"
                    "    }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:9]: (information) Technically the member function 'Fred::isValid' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:9]: (style) Technically the member function 'Fred::isValid' can be const.\n", errout.str());
     }
 
     void const38() // ticket #2135
@@ -5440,7 +5441,7 @@ private:
                    "{\n"
                    "}\n");
 
-        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:5]: (information) Technically the member function 'Fred::f' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:5]: (style) Technically the member function 'Fred::f' can be const.\n", errout.str());
 
         checkConst("class Fred\n"
                    "{\n"
@@ -5454,7 +5455,7 @@ private:
                    "{\n"
                    "}\n");
 
-        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:7]: (information) Technically the member function 'Fred::f' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:7]: (style) Technically the member function 'Fred::f' can be const.\n", errout.str());
 
         checkConst("namespace NS {\n"
                    "    class Fred\n"
@@ -5470,7 +5471,7 @@ private:
                    "    }\n"
                    "}\n");
 
-        ASSERT_EQUALS("[test.cpp:10] -> [test.cpp:8]: (information) Technically the member function 'NS::Fred::f' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:10] -> [test.cpp:8]: (style) Technically the member function 'NS::Fred::f' can be const.\n", errout.str());
 
         checkConst("namespace NS {\n"
                    "    class Fred\n"
@@ -5486,7 +5487,7 @@ private:
                    "{\n"
                    "}\n");
 
-        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:8]: (information) Technically the member function 'NS::Fred::f' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:8]: (style) Technically the member function 'NS::Fred::f' can be const.\n", errout.str());
 
         checkConst("class Foo {\n"
                    "    class Fred\n"
@@ -5502,7 +5503,7 @@ private:
                    "{\n"
                    "}\n");
 
-        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:8]: (information) Technically the member function 'Foo::Fred::f' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:8]: (style) Technically the member function 'Foo::Fred::f' can be const.\n", errout.str());
     }
 
     void const43() // ticket 2377
@@ -5594,7 +5595,7 @@ private:
                    "    };\n"
                    "}\n");
 
-        ASSERT_EQUALS("[test.cpp:8]: (information) Technically the member function 'tools::WorkspaceControl::toGrid' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:8]: (style) Technically the member function 'tools::WorkspaceControl::toGrid' can be const.\n", errout.str());
     }
 
     void const46() // ticket 2663
@@ -5610,8 +5611,8 @@ private:
                    "    }\n"
                    "};\n");
 
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Altren::fun1' can be const.\n"
-                      "[test.cpp:7]: (information) Technically the member function 'Altren::fun2' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Altren::fun1' can be const.\n"
+                      "[test.cpp:7]: (style) Technically the member function 'Altren::fun2' can be const.\n", errout.str());
     }
 
     void const47() // ticket 2670
@@ -5632,7 +5633,7 @@ private:
                    "  void bar() { foo(1); }\n"
                    "};\n");
 
-        ASSERT_EQUALS("[test.cpp:5]: (information) Technically the member function 'Altren::bar' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5]: (style) Technically the member function 'Altren::bar' can be const.\n", errout.str());
     }
 
     void const48() // ticket 2672
@@ -5756,6 +5757,68 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    void const55() // ticket #3149
+    {
+        checkConst("class MyObject {\n"
+                   "public:\n"
+                   "    void foo(int x) {\n"
+                   "    switch (x) { }\n"
+                   "    }\n"
+                   "};\n");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'MyObject::foo' can be const.\n", errout.str());
+
+        checkConst("class A\n"
+                   "{\n"
+                   "    protected:\n"
+                   "        unsigned short f (unsigned short X);\n"
+                   "    public:\n"
+                   "        A ();\n"
+                   "};\n"
+                   "\n"
+                   "unsigned short A::f (unsigned short X)\n"
+                   "{\n"
+                   "    enum ERetValues {RET_NOK = 0, RET_OK = 1};\n"
+                   "    enum ETypes     {FLOAT_TYPE = 1, INT_TYPE = 2};\n"
+                   "\n"
+                   "    try\n"
+                   "    {\n"
+                   "        switch (X)\n"
+                   "        {\n"
+                   "            case FLOAT_TYPE:\n"
+                   "            {\n"
+                   "                return RET_OK;\n"
+                   "                break;\n"
+                   "            }\n"
+                   "            case INT_TYPE:\n"
+                   "            {\n"
+                   "                return RET_OK;\n"
+                   "                break;\n"
+                   "            }\n"
+                   "            default:\n"
+                   "            {\n"
+                   "                return RET_NOK;\n"
+                   "                break;\n"
+                   "            }\n"
+                   "        }\n"
+                   "    }\n"
+                   "    catch (...)\n"
+                   "    {\n"
+                   "        return RET_NOK;\n"
+                   "    }\n"
+                   "\n"
+                   "    return RET_NOK;\n"
+                   "}\n");
+        ASSERT_EQUALS("[test.cpp:9] -> [test.cpp:4]: (style) Technically the member function 'A::f' can be const.\n", errout.str());
+
+        checkConst("class MyObject {\n"
+                   "public:\n"
+                   "    void foo(int x) {\n"
+                   "    for (int i = 0; i < 5; i++) { }\n"
+                   "    }\n"
+                   "};\n");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'MyObject::foo' can be const.\n", errout.str());
+    }
+
     void assigningPointerToPointerIsNotAConstOperation()
     {
         checkConst("struct s\n"
@@ -5815,25 +5878,25 @@ private:
                    "class Fred {\n"
                    "    void nextA() { return ++a; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return --a; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return a++; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return a--; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
     }
 
     void constassign1()
@@ -5872,31 +5935,31 @@ private:
                    "class Fred {\n"
                    "    void nextA() { return a=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return a-=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return a+=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return a*=-1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a;\n"
                    "class Fred {\n"
                    "    void nextA() { return a/=-2; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
     }
 
     void constassign2()
@@ -5929,31 +5992,31 @@ private:
                    "class Fred {\n"
                    "    void nextA() { return s.a=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("struct A { int a; } s;\n"
                    "class Fred {\n"
                    "    void nextA() { return s.a-=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("struct A { int a; } s;\n"
                    "class Fred {\n"
                    "    void nextA() { return s.a+=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("struct A { int a; } s;\n"
                    "class Fred {\n"
                    "    void nextA() { return s.a*=-1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("struct A { int a; } s;\n"
                    "class Fred {\n"
                    "    void nextA() { return s.a/=-2; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("struct A { int a; };\n"
                    "class Fred {\n"
@@ -6022,25 +6085,25 @@ private:
                    "class Fred {\n"
                    "    void nextA() { return ++a[0]; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return --a[0]; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return a[0]++; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return a[0]--; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
     }
 
     void constassignarray()
@@ -6079,31 +6142,31 @@ private:
                    "class Fred {\n"
                    "    void nextA() { return a[0]=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return a[0]-=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return a[0]+=1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return a[0]*=-1; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
 
         checkConst("int a[2];\n"
                    "class Fred {\n"
                    "    void nextA() { return a[0]/=-2; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::nextA' can be const.\n", errout.str());
     }
 
     // return pointer/reference => not const
@@ -6149,7 +6212,7 @@ private:
                    "    void f() const { };\n"
                    "    void a() { f(); };\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:3]: (information) Technically the member function 'Fred::a' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:3]: (style) Technically the member function 'Fred::a' can be const.\n", errout.str());
 
         // ticket #1593
         checkConst("#include <vector>\n"
@@ -6160,7 +6223,7 @@ private:
                    "   A(){}\n"
                    "   unsigned int GetVecSize()  {return m_v.size();}\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:7]: (information) Technically the member function 'A::GetVecSize' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7]: (style) Technically the member function 'A::GetVecSize' can be const.\n", errout.str());
 
         checkConst("#include <vector>\n"
                    "class A\n"
@@ -6170,7 +6233,7 @@ private:
                    "   A(){}\n"
                    "   bool GetVecEmpty()  {return m_v.empty();}\n"
                    "};");
-        ASSERT_EQUALS("[test.cpp:7]: (information) Technically the member function 'A::GetVecEmpty' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7]: (style) Technically the member function 'A::GetVecEmpty' can be const.\n", errout.str());
     }
 
     void constVirtualFunc()
@@ -6183,7 +6246,7 @@ private:
                    "   B() : b(0) { }\n"
                    "   int func() { return b; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:6]: (information) Technically the member function 'B::func' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:6]: (style) Technically the member function 'B::func' can be const.\n", errout.str());
 
         checkConst("class A { };\n"
                    "class B : public A {\n"
@@ -6193,7 +6256,7 @@ private:
                    "   int func();\n"
                    "};\n"
                    "int B::func() { return b; }\n");
-        ASSERT_EQUALS("[test.cpp:8] -> [test.cpp:6]: (information) Technically the member function 'B::func' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:8] -> [test.cpp:6]: (style) Technically the member function 'B::func' can be const.\n", errout.str());
 
         // base class has no virtual function
         checkConst("class A {\n"
@@ -6206,7 +6269,7 @@ private:
                    "    B() : b(0) { }\n"
                    "    int func() { return b; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:9]: (information) Technically the member function 'B::func' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:9]: (style) Technically the member function 'B::func' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "public:\n"
@@ -6219,7 +6282,7 @@ private:
                    "    int func();\n"
                    "};\n"
                    "int B::func() { return b; }\n");
-        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:9]: (information) Technically the member function 'B::func' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:11] -> [test.cpp:9]: (style) Technically the member function 'B::func' can be const.\n", errout.str());
 
         // base class has virtual function
         checkConst("class A {\n"
@@ -6279,9 +6342,9 @@ private:
                    "    C() : c(0) { }\n"
                    "    int func() { return c; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:5]: (information) Technically the member function 'A::func' can be const.\n"
-                      "[test.cpp:11]: (information) Technically the member function 'B::func' can be const.\n"
-                      "[test.cpp:17]: (information) Technically the member function 'C::func' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5]: (style) Technically the member function 'A::func' can be const.\n"
+                      "[test.cpp:11]: (style) Technically the member function 'B::func' can be const.\n"
+                      "[test.cpp:17]: (style) Technically the member function 'C::func' can be const.\n", errout.str());
 
         checkConst("class A {\n"
                    "    int a;\n"
@@ -6304,9 +6367,9 @@ private:
                    "    int func();\n"
                    "};\n"
                    "int C::func() { return c; }\n");
-        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:5]: (information) Technically the member function 'A::func' can be const.\n"
-                      "[test.cpp:14] -> [test.cpp:12]: (information) Technically the member function 'B::func' can be const.\n"
-                      "[test.cpp:21] -> [test.cpp:19]: (information) Technically the member function 'C::func' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:5]: (style) Technically the member function 'A::func' can be const.\n"
+                      "[test.cpp:14] -> [test.cpp:12]: (style) Technically the member function 'B::func' can be const.\n"
+                      "[test.cpp:21] -> [test.cpp:19]: (style) Technically the member function 'C::func' can be const.\n", errout.str());
 
         // base class has virtual function
         checkConst("class A {\n"
@@ -6371,9 +6434,9 @@ private:
                    "    Z(int x, int y, int z) : Y(x, y), z(z) { }\n"
                    "    int getZ() { return z; }\n"
                    "};\n");
-        ASSERT_EQUALS("[test.cpp:5]: (information) Technically the member function 'X::getX' can be const.\n"
-                      "[test.cpp:11]: (information) Technically the member function 'Y::getY' can be const.\n"
-                      "[test.cpp:17]: (information) Technically the member function 'Z::getZ' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:5]: (style) Technically the member function 'X::getX' can be const.\n"
+                      "[test.cpp:11]: (style) Technically the member function 'Y::getY' can be const.\n"
+                      "[test.cpp:17]: (style) Technically the member function 'Z::getZ' can be const.\n", errout.str());
 
         checkConst("class X {\n"
                    "    int x;\n"
@@ -6396,9 +6459,9 @@ private:
                    "    int getZ();\n"
                    "};\n"
                    "int Z::getZ() { return z; }\n");
-        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:5]: (information) Technically the member function 'X::getX' can be const.\n"
-                      "[test.cpp:14] -> [test.cpp:12]: (information) Technically the member function 'Y::getY' can be const.\n"
-                      "[test.cpp:21] -> [test.cpp:19]: (information) Technically the member function 'Z::getZ' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:7] -> [test.cpp:5]: (style) Technically the member function 'X::getX' can be const.\n"
+                      "[test.cpp:14] -> [test.cpp:12]: (style) Technically the member function 'Y::getY' can be const.\n"
+                      "[test.cpp:21] -> [test.cpp:19]: (style) Technically the member function 'Z::getZ' can be const.\n", errout.str());
     }
 
     void constIfCfg()
@@ -6412,7 +6475,7 @@ private:
 
         settings.ifcfg = false;
         checkConst(code, &settings);
-        ASSERT_EQUALS("[test.cpp:2]: (information) Technically the member function 'foo::f' can be const.\n", errout.str());
+        ASSERT_EQUALS("[test.cpp:2]: (style) Technically the member function 'foo::f' can be const.\n", errout.str());
 
         settings.ifcfg = true;
         checkConst(code, &settings);

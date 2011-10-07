@@ -481,6 +481,31 @@ private:
               "}\n");
         ASSERT_EQUALS("", errout.str());
 
+        check("void foo(int *p)\n"
+              "{\n"
+              "    int var1 = x ? *p : 5;\n"
+              "    if (!p)\n"
+              "        ;\n"
+              "}\n");
+        TODO_ASSERT_EQUALS("error", "", errout.str());
+
+        // Ticket #3125
+        check("void foo(ABC *p)\n"
+              "{\n"
+              "    int var1 = p ? (p->a) : 0;\n"
+              "    if (!p)\n"
+              "        ;\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+        check("void foo(ABC *p)\n"
+              "{\n"
+              "    int var1 = p ? (1 + p->a) : 0;\n"
+              "    if (!p)\n"
+              "        ;\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+
         check("void foo(P *p)\n"
               "{\n"
               "  while (p)\n"
@@ -1250,6 +1275,11 @@ private:
               "}\n");
         ASSERT_EQUALS("", errout.str());
 
+        // Ticket #3126 - don't confuse member function with standard function
+        check("void f() {\n"
+              "    image1.fseek(0, SEEK_SET);\n"
+              "}");
+        ASSERT_EQUALS("", errout.str());
     }
 
     void gcc_statement_expression()

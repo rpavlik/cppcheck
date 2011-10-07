@@ -1663,7 +1663,7 @@ bool CheckClass::checkConstFunc(const Scope *scope, const Token *tok)
 
         // function call..
         else if (Token::Match(tok1, "%var% (") &&
-                 !(Token::Match(tok1, "return|c_str|if|string") || tok1->isStandardType()))
+                 !(Token::Match(tok1, "return|c_str|if|string|switch|while|catch|for") || tok1->isStandardType()))
         {
             if (!isConstMemberFunc(scope, tok1))
             {
@@ -1762,7 +1762,7 @@ bool CheckClass::isVirtualFunc(const Scope *scope, const Token *functionToken) c
 
 void CheckClass::checkConstError(const Token *tok, const std::string &classname, const std::string &funcname)
 {
-    reportError(tok, Severity::information, "functionConst",
+    reportError(tok, Severity::style, "functionConst",
                 "Technically the member function '" + classname + "::" + funcname + "' can be const.\n"
                 "The member function '" + classname + "::" + funcname + "' can be made a const "
                 "function. Making this function const function should not cause compiler errors. "
@@ -1776,7 +1776,7 @@ void CheckClass::checkConstError2(const Token *tok1, const Token *tok2, const st
     std::list<const Token *> toks;
     toks.push_back(tok1);
     toks.push_back(tok2);
-    reportError(toks, Severity::information, "functionConst",
+    reportError(toks, Severity::style, "functionConst",
                 "Technically the member function '" + classname + "::" + funcname + "' can be const.\n"
                 "The member function '" + classname + "::" + funcname + "' can be made a const "
                 "function. Making this function const function should not cause compiler errors. "

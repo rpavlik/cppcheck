@@ -32,6 +32,7 @@
 #include "settingsdialog.h"
 #include "translationhandler.h"
 #include "settings.h"
+#include "platforms.h"
 #include "ui_main.h"
 
 class ThreadHandler;
@@ -60,6 +61,11 @@ public:
 
     MainWindow();
     virtual ~MainWindow();
+
+    /**
+      * List of checked platforms.
+      */
+    Platforms mPlatforms;
 
 public slots:
 
@@ -284,6 +290,11 @@ protected slots:
     * @brief Opens recently opened project file.
     */
     void OpenRecentProject();
+
+    /**
+    * @brief Selects the platform as checked platform.
+    */
+    void SelectPlatform();
 
 protected:
 

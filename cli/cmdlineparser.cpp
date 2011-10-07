@@ -45,11 +45,21 @@ static void AddFilesToList(const std::string& FileList, std::vector<std::string>
     // xml is a bonus then, since we can easily extend it
     // we need a good parser then -> suggestion : TinyXml
     // drawback : creates a dependency
-    std::ifstream Files(FileList.c_str());
+    std::istream *Files;
+    std::ifstream Infile;
+    if (FileList.compare("-") == 0) // read from stdin
+    {
+        Files = &std::cin;
+    }
+    else
+    {
+        Infile.open(FileList.c_str());
+        Files = &Infile;
+    }
     if (Files)
     {
         std::string FileName;
-        while (std::getline(Files, FileName)) // next line
+        while (std::getline(*Files, FileName)) // next line
         {
             if (!FileName.empty())
             {
@@ -421,6 +431,12 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             _settings->posix = true;
         }
 
+        // --C99
+        else if (strcmp(argv[i], "--std=c99") == 0)
+        {
+            _settings->c99 = true;
+        }
+
         // Output formatter
         else if (strcmp(argv[i], "--template") == 0)
         {
@@ -720,7 +736,8 @@ void CmdLineParser::PrintHelp()
               "                         Used when certain messages should be displayed but\n"
               "                         should not cause a non-zero exitcode.\n"
               "    --file-list=<file>   Specify the files to check in a text file. Add one\n"
-              "                         filename per line.\n"
+              "                         filename per line. When file is -, the file list will\n"
+              "                         be read from standard input.\n"
               "    -f, --force          Force checking of all configurations in files that have\n"
               "                         \"too many\" configurations.\n"
               "    -h, --help           Print this help.\n"
@@ -756,6 +773,7 @@ void CmdLineParser::PrintHelp()
 #endif
               "    -s, --style          Deprecated, use --enable=style\n"
               "    --std=posix          Code is posix\n"
+              "    --std=c99            Code is C99 standard\n"
               "    --suppress=<spec>    Suppress warnings that match <spec>. The format of\n"
               "                         <spec> is:\n"
               "                         [error id]:[filename]:[line]\n"

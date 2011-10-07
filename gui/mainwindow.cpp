@@ -150,6 +150,32 @@ MainWindow::MainWindow() :
     mRecentProjectActs[MaxRecentProjects] = NULL; // The separator
     mUI.mActionProjectMRU->setVisible(false);
     UpdateMRUMenuItems();
+
+    QActionGroup* platformGroup = new QActionGroup(this);
+    for (int i = 0; i < mPlatforms.getCount(); i++)
+    {
+        Platform plat = mPlatforms.mPlatforms[i];
+        QAction *act = new QAction(this);
+        plat.mActMainWindow = act;
+        mPlatforms.mPlatforms[i] = plat;
+        act->setText(plat.mTitle);
+        act->setData(plat.mType);
+        act->setCheckable(true);
+        act->setActionGroup(platformGroup);
+        mUI.mMenuCheck->insertAction(mUI.mActionPlatforms, act);
+        connect(act, SIGNAL(triggered()), this, SLOT(SelectPlatform()));
+    }
+
+    // For Windows platforms default to Win32 checked platform.
+    // For other platforms default to unspecified/default which means the
+    // platform Cppcheck GUI was compiled on.
+#if defined(_WIN32)
+    Platform &plat = mPlatforms.get(Settings::Win32A);
+#else
+    Platform &plat = mPlatforms.get(Settings::Unspecified);
+#endif
+    plat.mActMainWindow->setChecked(true);
+    mSettings->setValue(SETTINGS_CHECKED_PLATFORM, plat.mType);
 }
 
 MainWindow::~MainWindow()
@@ -195,7 +221,11 @@ void MainWindow::LoadSettings()
     mUI.mActionShowInformation->setChecked(mSettings->value(SETTINGS_SHOW_INFORMATION, true).toBool());
 
     mUI.mResults->ShowResults(SHOW_ERRORS, mUI.mActionShowErrors->isChecked());
+    mUI.mResults->ShowResults(SHOW_WARNINGS, mUI.mActionShowWarnings->isChecked());
     mUI.mResults->ShowResults(SHOW_STYLE, mUI.mActionShowStyle->isChecked());
+    mUI.mResults->ShowResults(SHOW_PORTABILITY, mUI.mActionShowPortability->isChecked());
+    mUI.mResults->ShowResults(SHOW_PERFORMANCE, mUI.mActionShowPerformance->isChecked());
+    mUI.mResults->ShowResults(SHOW_INFORMATION, mUI.mActionShowInformation->isChecked());
 
     // Main window settings
     const bool showMainToolbar = mSettings->value(SETTINGS_TOOLBARS_MAIN_SHOW, true).toBool();
@@ -490,6 +520,7 @@ Settings MainWindow::GetCppcheckSettings()
     result._jobs = mSettings->value(SETTINGS_CHECK_THREADS, 1).toInt();
     result._inlineSuppressions = mSettings->value(SETTINGS_INLINE_SUPPRESSIONS, false).toBool();
     result.inconclusive = mSettings->value(SETTINGS_INCONCLUSIVE_ERRORS, false).toBool();
+    result.platformType = (Settings::PlatformType) mSettings->value(SETTINGS_CHECKED_PLATFORM, 0).toInt();
 
     if (result._jobs <= 0)
     {
@@ -1091,4 +1122,14 @@ void MainWindow::RemoveProjectMRU(const QString &project)
 
     mSettings->setValue(SETTINGS_MRU_PROJECTS, files);
     UpdateMRUMenuItems();
+}
+
+void MainWindow::SelectPlatform()
+{
+    QAction *action = qobject_cast<QAction *>(sender());
+    if (action)
+    {
+        const Settings::PlatformType platform = (Settings::PlatformType) action->data().toInt();
+        mSettings->setValue(SETTINGS_CHECKED_PLATFORM, platform);
+    }
 }

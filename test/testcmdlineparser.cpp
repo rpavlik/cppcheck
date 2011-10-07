@@ -71,12 +71,14 @@ private:
         TEST_CASE(exitcodeSuppressions);
         TEST_CASE(exitcodeSuppressionsNoFile);
         TEST_CASE(fileList); // TODO: Create and test real file listing file
+        // TEST_CASE(fileListStdin);  // Disabled since hangs the test run
         TEST_CASE(inlineSuppr);
         TEST_CASE(jobs);
         TEST_CASE(jobsMissingCount);
         TEST_CASE(jobsInvalid);
         TEST_CASE(reportProgressTest); // "Test" suffix to avoid hiding the parent's reportProgress
         TEST_CASE(stdposix);
+        TEST_CASE(stdc99);
         TEST_CASE(suppressionsOld); // TODO: Create and test real suppression file
         TEST_CASE(suppressions);
         TEST_CASE(suppressionsNoFile);
@@ -531,6 +533,17 @@ private:
         TODO_ASSERT_EQUALS(true, false, parser.ParseFromArgs(4, argv));
     }
 
+    void fileListStdin()
+    {
+        // TODO: Give it some stdin to read from, fails because the list of
+        // files in stdin (_pathnames) is empty
+        REDIRECT;
+        const char *argv[] = {"cppcheck", "--file-list=-", "file.cpp"};
+        Settings settings;
+        CmdLineParser parser(&settings);
+        TODO_ASSERT_EQUALS(true, false, parser.ParseFromArgs(3, argv));
+    }
+
     void inlineSuppr()
     {
         REDIRECT;
@@ -588,6 +601,16 @@ private:
         CmdLineParser parser(&settings);
         ASSERT(parser.ParseFromArgs(3, argv));
         ASSERT(settings.posix);
+    }
+
+    void stdc99()
+    {
+        REDIRECT;
+        const char *argv[] = {"cppcheck", "--std=c99", "file.cpp"};
+        Settings settings;
+        CmdLineParser parser(&settings);
+        ASSERT(parser.ParseFromArgs(3, argv));
+        ASSERT(settings.c99);
     }
 
     void suppressionsOld()
