@@ -348,6 +348,7 @@ private:
         TEST_CASE(simplifyOperatorName3);
         TEST_CASE(simplifyOperatorName4);
         TEST_CASE(simplifyOperatorName5);
+        TEST_CASE(simplifyOperatorName6); // ticket #3194
 
         // Some simple cleanups of unhandled macros in the global scope
         TEST_CASE(removeMacrosInGlobalScope);
@@ -4582,6 +4583,16 @@ private:
             ASSERT_EQUALS("", errout.str());
         }
 
+        // ok code (ticket #3183)
+        {
+            errout.str();
+            std::istringstream istr("MACRO(({ i < x }))");
+            Settings settings;
+            Tokenizer tokenizer(&settings, this);
+            tokenizer.tokenize(istr, "test.cpp");
+            ASSERT_EQUALS("", errout.str());
+        }
+
         // bad code.. missing ">"
         {
             errout.str("");
@@ -5085,9 +5096,26 @@ private:
     void labels()
     {
         ASSERT_EQUALS(" void f(){ ab:; a=0;}", labels_("void f() { ab: a=0; }"));
-        ASSERT_EQUALS(" void f(){ ab:;* b=0;}", labels_("void f() { ab: *b=0; }"));
-        ASSERT_EQUALS(" void f(){ ab:;& b=0;}", labels_("void f() { ab: &b=0; }"));
+        //ticket #3176
         ASSERT_EQUALS(" void f(){ ab:;(* func)();}", labels_("void f() { ab: (*func)(); }"));
+        //with '*' operator
+        ASSERT_EQUALS(" void f(){ ab:;* b=0;}", labels_("void f() { ab: *b=0; }"));
+        ASSERT_EQUALS(" void f(){ ab:;** b=0;}", labels_("void f() { ab: **b=0; }"));
+        //with '&' operator
+        ASSERT_EQUALS(" void f(){ ab:;& b=0;}", labels_("void f() { ab: &b=0; }"));
+        ASSERT_EQUALS(" void f(){ ab:;&( b. x)=0;}", labels_("void f() { ab: &(b->x)=0; }"));
+        //with '(' parenthesis
+        ASSERT_EQUALS(" void f(){ ab:;*(* b). x=0;}", labels_("void f() { ab: *(* b)->x=0; }"));
+        ASSERT_EQUALS(" void f(){ ab:;(** b). x=0;}", labels_("void f() { ab: (** b).x=0; }"));
+        ASSERT_EQUALS(" void f(){ ab:;&(* b. x)=0;}", labels_("void f() { ab: &(*b.x)=0; }"));
+        //with '{' parenthesis
+        ASSERT_EQUALS(" void f(){ ab:;{ b=0;}}", labels_("void f() { ab: {b=0;} }"));
+        ASSERT_EQUALS(" void f(){ ab:;{* b=0;}}", labels_("void f() { ab: { *b=0;} }"));
+        ASSERT_EQUALS(" void f(){ ab:;{& b=0;}}", labels_("void f() { ab: { &b=0;} }"));
+        ASSERT_EQUALS(" void f(){ ab:;{&(* b. x)=0;}}", labels_("void f() { ab: {&(*b.x)=0;} }"));
+        //with unhandled MACRO() code
+        ASSERT_EQUALS(" void f(){ MACRO( ab: b=0;, foo)}", labels_("void f() { MACRO(ab: b=0;, foo)}"));
+        ASSERT_EQUALS(" void f(){ MACRO( bar, ab:{&(* b. x)=0;})}", labels_("void f() { MACRO(bar, ab: {&(*b.x)=0;})}"));
     }
 
     // Check simplifyInitVar
@@ -5902,11 +5930,23 @@ private:
         ASSERT_EQUALS(result2, tokenizeAndStringify(code2,false));
     }
 
+    void simplifyOperatorName6() // ticket #3195
+    {
+        const char code1[] = "value_type * operator ++ (int);";
+        const char result1[] = "value_type * operator++ ( int ) ;";
+        ASSERT_EQUALS(result1, tokenizeAndStringify(code1,false));
+
+        const char code2[] = "value_type * operator -- (int);";
+        const char result2[] = "value_type * operator-- ( int ) ;";
+        ASSERT_EQUALS(result2, tokenizeAndStringify(code2,false));
+    }
+
     void removeMacrosInGlobalScope()
     {
         // remove some unhandled macros in the global scope.
         ASSERT_EQUALS("void f ( ) { }", tokenizeAndStringify("void f() NOTHROW { }"));
         ASSERT_EQUALS("struct Foo { } ;", tokenizeAndStringify("struct __declspec(dllexport) Foo {};"));
+        ASSERT_EQUALS("ABA ( ) namespace { }", tokenizeAndStringify("ABA() namespace { }"));
     }
 
     void multipleAssignment()

@@ -2389,6 +2389,14 @@ bool Tokenizer::tokenize(std::istream &code,
                     break;
             }
 
+            // skip executing scopes (ticket #3183)..
+            if (Token::simpleMatch(tok, "( {"))
+            {
+                tok = tok->next()->link();
+                if (!tok)
+                    break;
+            }
+
             // skip executing scopes (ticket #1985)..
             if (Token::simpleMatch(tok, "try {"))
             {
@@ -2821,9 +2829,9 @@ void Tokenizer::labels()
         {
             // Simplify labels in the executable scope..
             unsigned int indentlevel = 0;
+            unsigned int indentroundbraces = 0;
             while (0 != (tok = tok->next()))
             {
-                // indentations..
                 if (tok->str() == "{")
                     ++indentlevel;
                 else if (tok->str() == "}")
@@ -2833,11 +2841,29 @@ void Tokenizer::labels()
                     --indentlevel;
                 }
 
-                // simplify label..
-                if (Token::Match(tok, "[;{}] %var% : (| *|&| %var%"))
+                if (tok->str() == "(")
+                    ++indentroundbraces;
+                else if (tok->str() == ")")
                 {
-                    if (!Token::Match(tok->next(), "public|protected|private"))
-                        tok->tokAt(2)->insertToken(";");
+                    if (!indentroundbraces)
+                        break;
+                    --indentroundbraces;
+                }
+                // simplify label.. except for unhandled macro
+                if (!indentroundbraces && Token::Match(tok, "[;{}] %var% :")
+                    && !Token::Match(tok->next(), "public|protected|private")
+                    && tok->tokAt(3)->str() != ";")
+                {
+                    for (Token *tok2 = tok->tokAt(3); tok2; tok2 = tok2->next())
+                    {
+                        if (Token::Match(tok2, "%var%"))
+                        {
+                            tok->tokAt(2)->insertToken(";");
+                            break;
+                        }
+                        else if (!Token::Match(tok2, "[(*&{]"))
+                            break;
+                    }
                 }
             }
         }
@@ -4828,7 +4854,8 @@ void Tokenizer::removeMacrosInGlobalScope()
         if (tok->str() == "(")
         {
             tok = tok->link();
-            if (Token::Match(tok, ") %type% {") && tok->strAt(1) != "const")
+            if (Token::Match(tok, ") %type% {") &&
+                !Token::Match(tok->next(), "const|namespace|class|struct|union"))
                 tok->deleteNext();
         }
 
@@ -4942,7 +4969,7 @@ void Tokenizer::simplifyDeadCode()
                             break;
                         --indentlevel1;
                     }
-                    else if (Token::Match(tok2, "%var% : ;") && !Token::Match(tok2, "case!default"))
+                    else if (Token::Match(tok2, "%var% : ;") && !Token::Match(tok2, "case|default"))
                     {
                         indentlabel = indentlevel1;
                         break;
@@ -9975,10 +10002,11 @@ void Tokenizer::simplifyWhile0()
         // while (0)
         const bool while0(Token::Match(tok, "while ( 0|false )"));
 
-        // for (0)
-        const bool for0(Token::Match(tok, "for ( %var% = %num% ; %var% < %num% ;") &&
-                        tok->strAt(2) == tok->strAt(6) &&
-                        tok->strAt(4) == tok->strAt(8));
+        // for (0) - not banal, ticket #3140
+        const bool for0((Token::Match(tok, "for ( %var% = %num% ; %var% < %num% ;") &&
+                         tok->strAt(2) == tok->strAt(6) && tok->strAt(4) == tok->strAt(8)) ||
+                        (Token::Match(tok, "for ( %type% %var% = %num% ; %var% < %num% ;") &&
+                         tok->strAt(3) == tok->strAt(7) && tok->strAt(5) == tok->strAt(9)));
 
         if (!while0 && !for0)
             continue;
@@ -10958,7 +10986,7 @@ void Tokenizer::simplifyOperatorName()
                     par = par->next();
                     done = false;
                 }
-                if (Token::Match(par, "=|.|%op%"))
+                if (Token::Match(par, "=|.|++|--|%op%"))
                 {
                     op += par->str();
                     par = par->next();

@@ -264,6 +264,39 @@ void CheckOther::bitwiseOnBooleanError(const Token *tok, const std::string &varn
                             "Boolean variable '" + varname + "' is used in bitwise operation. Did you mean " + op + " ?");
 }
 
+void CheckOther::checkSuspiciousSemicolon()
+{
+    if (!_settings->inconclusive || !_settings->isEnabled("style"))
+        return;
+
+    for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
+    {
+        // Look for "if(); {}", "for(); {}" or "while(); {}"
+        if (Token::Match(tok, "if|for|while ("))
+        {
+            const Token *end = tok->next()->link();
+            if (!end)
+                continue;
+
+            // Ensure the semicolon is at the same line number as the if/for/while statement
+            // and the {..} block follows it without an extra empty line.
+            if (Token::simpleMatch(end, ") { ; } {") &&
+                end->linenr() == end->tokAt(2)->linenr()
+                && end->linenr()+1 >= end->tokAt(4)->linenr())
+            {
+                SuspiciousSemicolonError(tok);
+            }
+        }
+    }
+}
+
+void CheckOther::SuspiciousSemicolonError(const Token* tok)
+{
+    reportInconclusiveError(tok, Severity::warning, "suspiciousSemicolon",
+                            "Suspicious use of ; at the end of 'if/for/while' statement.");
+}
+
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 void CheckOther::warningOldStylePointerCast()
@@ -2573,6 +2606,41 @@ void CheckOther::assignBoolToPointerError(const Token *tok)
                 "Assigning bool value to pointer (converting bool value to address)");
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CheckOther::checkComparisonOfBoolExpressionWithInt()
+{
+    for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
+    {
+        if (Token::Match(tok, "&&|%oror% %any% ) ==|!=|>|< %num%"))
+        {
+            const std::string& op = tok->strAt(3);
+            const std::string& num = tok->strAt(4);
+            if ((op == "<" || num != "0") && (op == ">" || num != "1"))
+            {
+                comparisonOfBoolExpressionWithIntError(tok->next());
+            }
+        }
+
+        else if (Token::Match(tok, "%num% ==|!=|>|< ( %any% &&|%oror%"))
+        {
+            const std::string& op = tok->strAt(1);
+            const std::string& num = tok->str();
+            if ((op == ">" || num != "0") && (op == "<" || num != "1"))
+            {
+                comparisonOfBoolExpressionWithIntError(tok->next());
+            }
+        }
+    }
+}
+
+void CheckOther::comparisonOfBoolExpressionWithIntError(const Token *tok)
+{
+    reportError(tok, Severity::warning, "compareBoolExpressionWithInt",
+                "Comparison of a boolean expression with an integer other than 0 or 1.");
+}
+
+
 //---------------------------------------------------------------------------
 // Check testing sign of unsigned variables.
 //---------------------------------------------------------------------------
@@ -2594,25 +2662,25 @@ void CheckOther::checkSignOfUnsignedVariable()
         // check all the code in the function
         for (const Token *tok = scope->classStart; tok && tok != scope->classStart->link(); tok = tok->next())
         {
-            if (Token::Match(tok, "(|&&|%oror% %var% <|<= 0 )|&&|%oror%") && tok->next()->varId())
+            if (Token::Match(tok, ";|(|&&|%oror% %var% <|<= 0 ;|)|&&|%oror%") && tok->next()->varId())
             {
                 const Variable * var = symbolDatabase->getVariableFromVarId(tok->next()->varId());
                 if (var && var->typeEndToken()->isUnsigned())
                     unsignedLessThanZeroError(tok->next(), tok->next()->str());
             }
-            else if (Token::Match(tok, "(|&&|%oror% 0 > %var% )|&&|%oror%") && tok->tokAt(3)->varId())
+            else if (Token::Match(tok, ";|(|&&|%oror% 0 > %var% ;|)|&&|%oror%") && tok->tokAt(3)->varId())
             {
                 const Variable * var = symbolDatabase->getVariableFromVarId(tok->tokAt(3)->varId());
                 if (var && var->typeEndToken()->isUnsigned())
                     unsignedLessThanZeroError(tok->tokAt(3), tok->strAt(3));
             }
-            else if (Token::Match(tok, "(|&&|%oror% 0 <= %var% )|&&|%oror%") && tok->tokAt(3)->varId())
+            else if (Token::Match(tok, ";|(|&&|%oror% 0 <= %var% ;|)|&&|%oror%") && tok->tokAt(3)->varId())
             {
                 const Variable * var = symbolDatabase->getVariableFromVarId(tok->tokAt(3)->varId());
                 if (var && var->typeEndToken()->isUnsigned())
                     unsignedPositiveError(tok->tokAt(3), tok->strAt(3));
             }
-            else if (Token::Match(tok, "(|&&|%oror% %var% >= 0 )|&&|%oror%") && tok->next()->varId())
+            else if (Token::Match(tok, ";|(|&&|%oror% %var% >= 0 ;|)|&&|%oror%") && tok->next()->varId())
             {
                 const Variable * var = symbolDatabase->getVariableFromVarId(tok->next()->varId());
                 if (var && var->typeEndToken()->isUnsigned())

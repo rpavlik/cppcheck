@@ -123,6 +123,8 @@ private:
         TEST_CASE(clarifyCondition4);     // ticket #3110
         TEST_CASE(bitwiseOnBoolean);      // if (bool & bool)
 
+        TEST_CASE(comparisonOfBoolExpressionWithInt);
+
         TEST_CASE(incorrectStringCompare);
 
         TEST_CASE(incrementBoolean);
@@ -138,6 +140,9 @@ private:
 
         TEST_CASE(alwaysTrueFalseStringCompare);
         TEST_CASE(checkSignOfUnsignedVariable);
+
+        TEST_CASE(checkForSuspiciousSemicolon1);
+        TEST_CASE(checkForSuspiciousSemicolon2);
     }
 
     void check(const char code[], const char *filename = NULL)
@@ -167,6 +172,8 @@ private:
         checkOther.checkDuplicateBranch();
         checkOther.checkDuplicateExpression();
         checkOther.checkBitwiseOnBoolean();
+        checkOther.checkComparisonOfBoolExpressionWithInt();
+        checkOther.checkSuspiciousSemicolon();
 
         // Simplify token list..
         tokenizer.simplifyTokenList();
@@ -2464,6 +2471,142 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+
+    void comparisonOfBoolExpressionWithInt()
+    {
+        check("void f(int x) {\n"
+              "    if ((x && 0x0f)==6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x && 0x0f)==0)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x || 0x0f)==6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x || 0x0f)==0)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x & 0x0f)==6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((x | 0x0f)==6)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+
+        check("void f(int x) {\n"
+              "    if ((5 && x)==3)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 && x)==3 || (8 && x)==9)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 && x)!=3)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+
+        check("void f(int x) {\n"
+              "    if ((5 && x) > 3)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 && x) > 0)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 && x) < 0)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 && x) < 1)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if ((5 && x) > 1)\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+
+        check("void f(int x) {\n"
+              "    if (0 < (5 && x))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (0 > (5 && x))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (1 > (5 && x))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("", errout.str());
+
+        check("void f(int x) {\n"
+              "    if (1 < (5 && x))\n"
+              "        a++;\n"
+              "}\n"
+             );
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Comparison of a boolean expression with an integer other than 0 or 1.\n", errout.str());
+
+
+    }
+
+
     void catchExceptionByValue()
     {
         check("void f() {\n"
@@ -3191,7 +3334,7 @@ private:
 
     void duplicateExpression1()
     {
-        check("voif foo() {\n"
+        check("void foo() {\n"
               "    if (a == a) { }\n"
               "}");
         ASSERT_EQUALS("[test.cpp:2] -> [test.cpp:2]: (style) Same expression on both sides of '=='.\n", errout.str());
@@ -3298,6 +3441,20 @@ private:
     void checkSignOfUnsignedVariable()
     {
         check_signOfUnsignedVariable(
+            "void foo() {\n"
+            "  for(unsigned char i = 10; i >= 0; i--)"
+            "    printf(\"%u\", i);\n"
+            "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Checking if unsigned variable 'i' is positive is always true.\n", errout.str());
+
+        check_signOfUnsignedVariable(
+            "void foo(bool b) {\n"
+            "  for(unsigned int i = 10; b || i >= 0; i--)"
+            "    printf(\"%u\", i);\n"
+            "}");
+        ASSERT_EQUALS("[test.cpp:2]: (style) Checking if unsigned variable 'i' is positive is always true.\n", errout.str());
+
+        check_signOfUnsignedVariable(
             "bool foo(unsigned int x) {\n"
             "  if (x < 0)"
             "    return true;\n"
@@ -3492,7 +3649,88 @@ private:
             "}");
         ASSERT_EQUALS("", errout.str());
     }
+
+    void checkForSuspiciousSemicolon1()
+    {
+        check(
+            "void foo() {\n"
+            "  for(int i = 0; i < 10; ++i);\n"
+            "}");
+        ASSERT_EQUALS("", errout.str());
+
+        // Empty block
+        check(
+            "void foo() {\n"
+            "  for(int i = 0; i < 10; ++i); {\n"
+            "  }\n"
+            "}");
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Suspicious use of ; at the end of 'if/for/while' statement.\n", errout.str());
+
+        // Block with some tokens to make sure the tokenizer output
+        // stays the same for "for(); {}"
+        check(
+            "void foo() {\n"
+            "  for(int i = 0; i < 10; ++i); {\n"
+            "  int j = 123;\n"
+            "  }\n"
+            "}");
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Suspicious use of ; at the end of 'if/for/while' statement.\n", errout.str());
+
+        check(
+            "void foo() {\n"
+            "  while (!quit); {\n"
+            "    do_something();\n"
+            "  }\n"
+            "}");
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Suspicious use of ; at the end of 'if/for/while' statement.\n", errout.str());
+    }
+
+    void checkForSuspiciousSemicolon2()
+    {
+        check(
+            "void foo() {\n"
+            "  if (i == 1); {\n"
+            "    do_something();\n"
+            "  }\n"
+            "}");
+        ASSERT_EQUALS("[test.cpp:2]: (warning) Suspicious use of ; at the end of 'if/for/while' statement.\n", errout.str());
+
+        // Seen this in the wild
+        check(
+            "void foo() {\n"
+            "  if (Match());\n"
+            "  do_something();\n"
+            "}");
+        ASSERT_EQUALS("", errout.str());
+
+        check(
+            "void foo() {\n"
+            "  if (Match());\n"
+            "  else\n"
+            "    do_something();\n"
+            "}");
+        ASSERT_EQUALS("", errout.str());
+
+        check(
+            "void foo() {\n"
+            "  if (i == 1)\n"
+            "       ;\n"
+            "  {\n"
+            "    do_something();\n"
+            "  }\n"
+            "}");
+        ASSERT_EQUALS("", errout.str());
+
+        check(
+            "void foo() {\n"
+            "  if (i == 1);\n"
+            "\n"
+            "  {\n"
+            "    do_something();\n"
+            "  }\n"
+            "}");
+        ASSERT_EQUALS("", errout.str());
+    }
 };
 
 REGISTER_TEST(TestOther)
-

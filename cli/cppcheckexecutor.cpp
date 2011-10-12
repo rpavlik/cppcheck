@@ -25,6 +25,8 @@
 #include <iostream>
 #include <cstdlib> // EXIT_SUCCESS and EXIT_FAILURE
 #include <cstring>
+#include <algorithm>
+
 #include "cmdlineparser.h"
 #include "filelister.h"
 #include "path.h"
@@ -255,6 +257,11 @@ int CppCheckExecutor::check(int argc, const char* const argv[])
 
 void CppCheckExecutor::reportErr(const std::string &errmsg)
 {
+    // Alert only about unique errors
+    if (std::find(_errorList.begin(), _errorList.end(), errmsg) != _errorList.end())
+        return;
+
+    _errorList.push_back(errmsg);
     std::cerr << errmsg << std::endl;
 }
 

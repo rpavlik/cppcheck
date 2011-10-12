@@ -23,6 +23,8 @@
 #include "settings.h"
 #include <ctime>
 #include <vector>
+#include <list>
+#include <string>
 
 class CppCheck;
 
@@ -106,6 +108,11 @@ protected:
     Settings _settings;
 
 private:
+
+    /**
+     * Used to filter out duplicate error messages.
+     */
+    std::list<std::string> _errorList;
 
     /**
      * Report progress time
