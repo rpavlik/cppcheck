@@ -46,8 +46,7 @@ class Variable;
  * I generally use 'buffer overrun' if you for example call a strcpy or
  * other function and pass a buffer and reads or writes too much data.
  */
-class CheckBufferOverrun : public Check
-{
+class CheckBufferOverrun : public Check {
 public:
 
     /** This constructor is used when registering the CheckClass */
@@ -59,8 +58,7 @@ public:
         : Check(myName(), tokenizer, settings, errorLogger)
     { }
 
-    void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
-    {
+    void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
         CheckBufferOverrun checkBufferOverrun(tokenizer, settings, errorLogger);
         checkBufferOverrun.bufferOverrun();
         checkBufferOverrun.negativeIndex();
@@ -111,8 +109,7 @@ public:
     void negativeIndex();
 
     /** Information about N-dimensional array */
-    class ArrayInfo
-    {
+    class ArrayInfo {
     private:
         /** number of elements of array */
         std::vector<MathLib::bigint> _num;
@@ -152,44 +149,36 @@ public:
         bool declare(const Token *tok, const Tokenizer &tokenizer);
 
         /** array sizes */
-        const std::vector<MathLib::bigint> &num() const
-        {
+        const std::vector<MathLib::bigint> &num() const {
             return _num;
         }
 
         /** array size */
-        MathLib::bigint num(size_t index) const
-        {
+        MathLib::bigint num(size_t index) const {
             return _num[index];
         }
-        void num(size_t index, MathLib::bigint number)
-        {
+        void num(size_t index, MathLib::bigint number) {
             _num[index] = number;
         }
 
         /** size of each element */
-        MathLib::bigint element_size() const
-        {
+        MathLib::bigint element_size() const {
             return _element_size;
         }
 
         /** Variable name */
-        unsigned int varid() const
-        {
+        unsigned int varid() const {
             return _varid;
         }
-        void varid(unsigned int id)
-        {
+        void varid(unsigned int id) {
             _varid = id;
         }
 
         /** Variable name */
-        const std::string &varname() const
-        {
+        const std::string &varname() const {
             return _varname;
         }
-        void varname(const std::string &name)
-        {
+        void varname(const std::string &name) {
             _varname = name;
         }
     };
@@ -205,6 +194,9 @@ public:
 
     /** Helper function used when parsing for-loops */
     void parse_for_body(const Token *tok2, const ArrayInfo &arrayInfo, const std::string &strindex, bool condition_out_of_bounds, unsigned int counter_varid, const std::string &min_counter_value, const std::string &max_counter_value);
+
+    /** Check readlink or readlinkat() buffer usage */
+    void checkReadlinkBufferUsage(const Token *tok, const Token *scope_begin, const MathLib::bigint total_size, const bool is_readlinkat);
 
     /**
      * Helper function for checkFunctionCall - check a function parameter
@@ -234,9 +226,9 @@ public:
     void pointerOutOfBoundsError(const Token *tok, const std::string &object);	// UB when result of calculation is out of bounds
     void arrayIndexThenCheckError(const Token *tok, const std::string &indexName);
     void possibleBufferOverrunError(const Token *tok, const std::string &src, const std::string &dst, bool cat);
+    void possibleReadlinkBufferOverrunError(const Token *tok, const std::string &funcname, const std::string &varname);
 
-    void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings)
-    {
+    void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) {
         CheckBufferOverrun c(0, settings, errorLogger);
         std::vector<MathLib::bigint> indexes;
         indexes.push_back(2);
@@ -252,15 +244,14 @@ public:
         c.pointerOutOfBoundsError(0, "array");
         c.arrayIndexThenCheckError(0, "index");
         c.possibleBufferOverrunError(0, "source", "destination", false);
+        c.possibleReadlinkBufferOverrunError(0, "readlink", "buffer");
     }
 
-    std::string myName() const
-    {
+    std::string myName() const {
         return "Bounds checking";
     }
 
-    std::string classInfo() const
-    {
+    std::string classInfo() const {
         return "out of bounds checking";
     }
 };

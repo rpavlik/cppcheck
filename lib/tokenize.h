@@ -27,6 +27,7 @@
 #include <list>
 #include <vector>
 #include <set>
+#include <iosfwd>
 
 class Token;
 class ErrorLogger;
@@ -37,8 +38,7 @@ class SymbolDatabase;
 /// @{
 
 /** @brief The main purpose is to tokenize the source code. It also has functions that simplify the token list */
-class Tokenizer
-{
+class Tokenizer {
 private:
     /** Deallocate lists */
     void deallocateTokens();
@@ -49,8 +49,7 @@ public:
     virtual ~Tokenizer();
 
     /** Is the code JAVA/C#. Used for bailouts */
-    bool isJavaOrCSharp() const
-    {
+    bool isJavaOrCSharp() const {
         if (_files.size() != 1)
             return false;
         const std::string::size_type pos = _files[0].rfind(".");
@@ -200,12 +199,6 @@ public:
     void removeRedundantAssignment();
 
     /**
-     * Remove redudant code placed after 'return ;' code.
-     * @todo Extend the functionality to code after 'break;' and 'continue;' code
-     */
-    void simplifyDeadCode();
-
-    /**
      * Replace sizeof() to appropriate size.
      */
     void simplifySizeof();
@@ -345,6 +338,11 @@ public:
     /** Replace a "goto" with the statements */
     void simplifyGoto();
 
+    /** Simplify redundant code placed after control flow statements :
+     * 'return', 'goto', 'break' and 'continue'
+     */
+    void simplifyFlowControl();
+
     /** Expand nested strcat() calls. */
     void simplifyNestedStrcat();
 
@@ -370,7 +368,7 @@ public:
      * @return true if something is modified
      *         false if nothing is done.
      */
-    bool removeReduntantConditions();
+    bool removeRedundantConditions();
 
     /**
      * Remove redundant for:
@@ -516,6 +514,9 @@ public:
      * Remove "std::" before some function names
      */
     void simplifyStd();
+
+    /** Simplify pointer to standard type (C only) */
+    void simplifyPointerToStandardType();
 
     /** Simplify function pointers */
     void simplifyFunctionPointers();
@@ -683,13 +684,11 @@ public:
     void unsupportedTypedef(const Token *tok) const;
 
     /** Was there templates in the code? */
-    bool codeWithTemplates() const
-    {
+    bool codeWithTemplates() const {
         return _codeWithTemplates;
     }
 
-    void setSettings(const Settings *settings)
-    {
+    void setSettings(const Settings *settings) {
         _settings = settings;
     }
 
@@ -701,8 +700,7 @@ public:
      * Get variable count.
      * @return number of variables
      */
-    unsigned int varIdCount() const
-    {
+    unsigned int varIdCount() const {
         return _varId;
     }
 
@@ -717,6 +715,9 @@ public:
      */
     void printUnknownTypes();
 
+    /** Checks if the file extensions is .c or .C */
+    bool code_is_c() const;
+
 private:
     /** Disable copy constructor, no implementation */
     Tokenizer(const Tokenizer &);
@@ -727,33 +728,33 @@ private:
     /** Token list */
     Token *_tokens, *_tokensBack;
 
-    /** sizeof information for known types */
-    std::map<std::string, unsigned int> _typeSize;
-
-    /** filenames for the tokenized source code (source + included) */
-    std::vector<std::string> _files;
-
     /** settings */
     const Settings * _settings;
 
     /** errorlogger */
     ErrorLogger * const _errorLogger;
 
+    /** Symbol database that all checks etc can use */
+    mutable SymbolDatabase *_symbolDatabase;
+
     /** E.g. "A" for code where "#ifdef A" is true. This is used to
         print additional information in error situations. */
     std::string _configuration;
+
+    /** sizeof information for known types */
+    std::map<std::string, unsigned int> _typeSize;
+
+    /** filenames for the tokenized source code (source + included) */
+    std::vector<std::string> _files;
+
+    /** variable count */
+    unsigned int _varId;
 
     /**
      * was there any templates? templates that are "unused" are
      * removed from the token list
      */
     bool _codeWithTemplates;
-
-    /** Symbol database that all checks etc can use */
-    mutable SymbolDatabase *_symbolDatabase;
-
-    /** variable count */
-    unsigned int _varId;
 };
 
 /// @}

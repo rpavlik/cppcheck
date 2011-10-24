@@ -35,8 +35,7 @@
  *
  * The Token class also has other functions for management of token list, matching tokens, etc.
  */
-class Token
-{
+class Token {
 private:
     Token **tokensBack;
 
@@ -49,10 +48,13 @@ public:
 
     void str(const std::string &s);
 
+    /**
+     * Concatenate two (quoted) strings. Automatically cuts of the last/first character.
+     * Example: "hello ""world" -> "hello world". Used by the token simplifier.
+     */
     void concatStr(std::string const& b);
 
-    const std::string &str() const
-    {
+    const std::string &str() const {
         return _str;
     }
 
@@ -137,28 +139,22 @@ public:
      **/
     static size_t getStrLength(const Token *tok);
 
-    bool isName() const
-    {
+    bool isName() const {
         return _isName;
     }
-    void isName(bool name)
-    {
+    void isName(bool name) {
         _isName = name;
     }
-    bool isNumber() const
-    {
+    bool isNumber() const {
         return _isNumber;
     }
-    void isNumber(bool number)
-    {
+    void isNumber(bool number) {
         _isNumber = number;
     }
-    bool isArithmeticalOp() const
-    {
+    bool isArithmeticalOp() const {
         return (this && (_str=="<<" || _str==">>" || (_str.size()==1 && _str.find_first_of("+-*/%") != std::string::npos)));
     }
-    bool isOp() const
-    {
+    bool isOp() const {
         if (!this)
             return false;
 
@@ -173,13 +169,11 @@ public:
                 _str == ">=" ||
                 (_str.size() == 1 && _str.find_first_of("&|^~!") != std::string::npos));
     }
-    bool isExtendedOp() const
-    {
+    bool isExtendedOp() const {
         return isOp() ||
                (this && _str.size() == 1 && _str.find_first_of(",[]()?:") != std::string::npos);
     }
-    bool isAssignmentOp() const
-    {
+    bool isAssignmentOp() const {
         if (!this)
             return false;
 
@@ -195,52 +189,40 @@ public:
                 _str == "<<=" ||
                 _str == ">>=");
     }
-    bool isBoolean() const
-    {
+    bool isBoolean() const {
         return _isBoolean;
     }
-    void isBoolean(bool boolean)
-    {
+    void isBoolean(bool boolean) {
         _isBoolean = boolean;
     }
-    bool isUnsigned() const
-    {
+    bool isUnsigned() const {
         return _isUnsigned;
     }
-    void isUnsigned(bool sign)
-    {
+    void isUnsigned(bool sign) {
         _isUnsigned = sign;
     }
-    bool isSigned() const
-    {
+    bool isSigned() const {
         return _isSigned;
     }
-    void isSigned(bool sign)
-    {
+    void isSigned(bool sign) {
         _isSigned = sign;
     }
-    bool isPointerCompare() const
-    {
+    bool isPointerCompare() const {
         return _isPointerCompare;
     }
-    void isPointerCompare(bool b)
-    {
+    void isPointerCompare(bool b) {
         _isPointerCompare = b;
     }
-    bool isLong() const
-    {
+    bool isLong() const {
         return _isLong;
     }
-    void isLong(bool size)
-    {
+    void isLong(bool size) {
         _isLong = size;
     }
-    bool isUnused() const
-    {
+    bool isUnused() const {
         return _isUnused;
     }
-    void isUnused(bool used)
-    {
+    void isUnused(bool used) {
         _isUnused = used;
     }
     bool isStandardType() const;
@@ -263,26 +245,21 @@ public:
      */
     static int multiCompare(const char *haystack, const char *needle);
 
-    unsigned int linenr() const
-    {
+    unsigned int linenr() const {
         return _linenr;
     }
-    void linenr(unsigned int lineNumber)
-    {
+    void linenr(unsigned int lineNumber) {
         _linenr = lineNumber;
     }
 
-    unsigned int fileIndex() const
-    {
+    unsigned int fileIndex() const {
         return _fileIndex;
     }
-    void fileIndex(unsigned int indexOfFile)
-    {
+    void fileIndex(unsigned int indexOfFile) {
         _fileIndex = indexOfFile;
     }
 
-    Token *next() const
-    {
+    Token *next() const {
         return _next;
     }
 
@@ -303,18 +280,15 @@ public:
      */
     void insertToken(const std::string &tokenStr);
 
-    Token *previous() const
-    {
+    Token *previous() const {
         return _previous;
     }
 
 
-    unsigned int varId() const
-    {
+    unsigned int varId() const {
         return _varId;
     }
-    void varId(unsigned int id)
-    {
+    void varId(unsigned int id) {
         _varId = id;
     }
 
@@ -350,9 +324,12 @@ public:
     std::string stringifyList(bool varid, const char *title, const std::vector<std::string> &fileNames) const;
 
     /**
-     * This is intended to be used for the first token in the list
-     * Do not use this for the tokens at the end of the list unless the
-     * token is the last token in the list.
+     * Remove the contents for this token from the token list.
+     *
+     * The contents are replaced with the contents of the next token and
+     * the next token is unlinked and deleted from the token list.
+     *
+     * So this token will still be valid after the 'deleteThis()'.
      */
     void deleteThis();
 
@@ -361,8 +338,7 @@ public:
      * @param linkToToken The token where this token should link
      * to.
      */
-    void link(Token *linkToToken)
-    {
+    void link(Token *linkToToken) {
         _link = linkToToken;
     }
 
@@ -370,11 +346,12 @@ public:
      * Return token where this token links to.
      * Supported links are:
      * "{" <-> "}"
+     * "(" <-> ")"
+     * "[" <-> "]"
      *
      * @return The token where this token links to.
      */
-    Token *link() const
-    {
+    Token *link() const {
         return _link;
     }
 
@@ -401,14 +378,12 @@ public:
     static void move(Token *srcStart, Token *srcEnd, Token *newLocation);
 
     /** Get progressValue */
-    unsigned int progressValue() const
-    {
+    unsigned int progressValue() const {
         return _progressValue;
     }
 
     /** Calculate progress values for all tokens */
-    void assignProgressValues()
-    {
+    void assignProgressValues() {
         unsigned int total_count = 0;
         for (Token *tok = this; tok; tok = tok->next())
             ++total_count;
@@ -417,13 +392,17 @@ public:
             tok->_progressValue = count++ * 100 / total_count;
     }
 
+    /**
+     * Returns the first token of the next argument. Does only work on argument
+     * lists. Returns 0, if there is no next argument
+     */
+    const Token* nextArgument() const;
+
 private:
-    void next(Token *nextToken)
-    {
+    void next(Token *nextToken) {
         _next = nextToken;
     }
-    void previous(Token *previousToken)
-    {
+    void previous(Token *previousToken) {
         _previous = previousToken;
     }
 
@@ -449,7 +428,10 @@ private:
     static int firstWordLen(const char *str);
 
 
-    std::string _str;
+    Token *_next;
+    Token *_previous;
+    Token *_link;
+
     bool _isName;
     bool _isNumber;
     bool _isBoolean;
@@ -459,17 +441,20 @@ private:
     bool _isLong;
     bool _isUnused;
     unsigned int _varId;
-    Token *_next;
-    Token *_previous;
-    Token *_link;
     unsigned int _fileIndex;
     unsigned int _linenr;
+
+    /** Updates internal property cache like _isName or _isBoolean.
+        Called after any _str() modification. */
+    void update_property_info();
 
     /**
      * A value from 0-100 that provides a rough idea about where in the token
      * list this token is located.
      */
     unsigned int _progressValue;
+
+    std::string _str;
 };
 
 /// @}

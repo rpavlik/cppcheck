@@ -24,22 +24,21 @@
 #include <cstring>
 
 extern std::ostringstream errout;
-class TestToken : public TestFixture
-{
+class TestToken : public TestFixture {
 public:
     TestToken() : TestFixture("TestToken")
     { }
 
 private:
 
-    void run()
-    {
+    void run() {
         TEST_CASE(nextprevious);
         TEST_CASE(multiCompare);
         TEST_CASE(getStrLength);
         TEST_CASE(strValue);
 
         TEST_CASE(deleteLast);
+        TEST_CASE(nextArgument);
 
         TEST_CASE(matchAny);
         TEST_CASE(matchSingleChar);
@@ -47,10 +46,17 @@ private:
         TEST_CASE(matchNumeric);
         TEST_CASE(matchBoolean);
         TEST_CASE(matchOr);
+
+        TEST_CASE(updateProperties)
+        TEST_CASE(updatePropertiesConcatStr)
+        TEST_CASE(isNameGuarantees1)
+        TEST_CASE(isNameGuarantees2)
+        TEST_CASE(isNameGuarantees3)
+        TEST_CASE(isNameGuarantees4)
+        TEST_CASE(isNameGuarantees5)
     }
 
-    void nextprevious()
-    {
+    void nextprevious() {
         Token *token = new Token(0);
         token->str("1");
         token->insertToken("2");
@@ -71,8 +77,7 @@ private:
         Tokenizer::deleteTokens(token);
     }
 
-    void multiCompare()
-    {
+    void multiCompare() {
         // Test for found
         ASSERT_EQUALS(1, Token::multiCompare("one|two", "one"));
         ASSERT_EQUALS(1, Token::multiCompare("one|two", "two"));
@@ -98,8 +103,7 @@ private:
         ASSERT_EQUALS(-1, Token::multiCompare("%op%|two", "x"));
     }
 
-    void getStrLength()
-    {
+    void getStrLength() {
         Token tok(0);
 
         tok.str("\"\"");
@@ -115,8 +119,7 @@ private:
         ASSERT_EQUALS(1, (int)Token::getStrLength(&tok));
     }
 
-    void strValue()
-    {
+    void strValue() {
         Token tok(0);
         tok.str("\"\"");
         ASSERT_EQUALS(std::string(""), tok.strValue());
@@ -126,8 +129,7 @@ private:
     }
 
 
-    void deleteLast()
-    {
+    void deleteLast() {
         Token *tokensBack = 0;
         Token tok(&tokensBack);
         tok.insertToken("aba");
@@ -136,9 +138,19 @@ private:
         ASSERT_EQUALS(true, tokensBack == &tok);
     }
 
+    void nextArgument() {
+        givenACodeSampleToTokenize example1("foo(1, 2, 3, 4);");
+        ASSERT_EQUALS(true, Token::Match(example1.tokens()->tokAt(2)->nextArgument(), "2 , 3"));
 
-    void matchAny()
-    {
+        givenACodeSampleToTokenize example2("foo();");
+        ASSERT_EQUALS(true, example2.tokens()->tokAt(2)->nextArgument() == 0);
+
+        givenACodeSampleToTokenize example3("foo(bar(a, b), 2, 3);");
+        ASSERT_EQUALS(true, Token::Match(example3.tokens()->tokAt(2)->nextArgument(), "2 , 3"));
+    }
+
+
+    void matchAny() {
         givenACodeSampleToTokenize varBitOrVar("abc|def");
         ASSERT_EQUALS(true, Token::Match(varBitOrVar.tokens(), "%var% | %var%"));
 
@@ -146,8 +158,7 @@ private:
         ASSERT_EQUALS(true, Token::Match(varLogOrVar.tokens(), "%var% || %var%"));
     }
 
-    void matchSingleChar()
-    {
+    void matchSingleChar() {
         givenACodeSampleToTokenize singleChar("a");
         ASSERT_EQUALS(true, Token::Match(singleChar.tokens(), "[a|bc]"));
         ASSERT_EQUALS(false, Token::Match(singleChar.tokens(), "[d|ef]"));
@@ -157,8 +168,7 @@ private:
         ASSERT_EQUALS(false, Token::Match(&multiChar, "[ab|def]"));
     }
 
-    void matchNothingOrAnyNotElse()
-    {
+    void matchNothingOrAnyNotElse() {
         givenACodeSampleToTokenize emptyString("");
         ASSERT_EQUALS(true, Token::Match(emptyString.tokens(), "!!else"));
         ASSERT_EQUALS(false, Token::Match(emptyString.tokens(), "!!else something"));
@@ -178,8 +188,7 @@ private:
     }
 
 
-    void matchNumeric()
-    {
+    void matchNumeric() {
         givenACodeSampleToTokenize nonNumeric("abc");
         ASSERT_EQUALS(false, Token::Match(nonNumeric.tokens(), "%num%"));
 
@@ -218,8 +227,7 @@ private:
     }
 
 
-    void matchBoolean()
-    {
+    void matchBoolean() {
         givenACodeSampleToTokenize yes("YES");
         ASSERT_EQUALS(false, Token::Match(yes.tokens(), "%bool%"));
 
@@ -230,8 +238,7 @@ private:
         ASSERT_EQUALS(true, Token::Match(negative.tokens(), "%bool%"));
     }
 
-    void matchOr()
-    {
+    void matchOr() {
         givenACodeSampleToTokenize bitwiseOr("|");
         ASSERT_EQUALS(true,  Token::Match(bitwiseOr.tokens(), "%or%"));
         ASSERT_EQUALS(false, Token::Match(bitwiseOr.tokens(), "%op%"));
@@ -250,10 +257,66 @@ private:
         ASSERT_EQUALS(true, Token::Match(logicalAnd.tokens(), "%oror%|&&"));
     }
 
-    void matchOp()
-    {
+    void matchOp() {
         givenACodeSampleToTokenize op("+");
         ASSERT_EQUALS(true, Token::Match(op.tokens(), "%op%"));
+    }
+
+    void updateProperties() {
+        Token tok(NULL);
+        tok.str("foobar");
+
+        ASSERT_EQUALS(true, tok.isName());
+        ASSERT_EQUALS(false, tok.isNumber());
+
+        tok.str("123456");
+
+        ASSERT_EQUALS(false, tok.isName());
+        ASSERT_EQUALS(true, tok.isNumber());
+    }
+
+    void updatePropertiesConcatStr() {
+        Token tok(NULL);
+        tok.str("true");
+
+        ASSERT_EQUALS(true, tok.isBoolean());
+
+        tok.concatStr("123");
+
+        ASSERT_EQUALS(false, tok.isBoolean());
+        ASSERT_EQUALS("tru23", tok.str());
+    }
+
+    void isNameGuarantees1() {
+        Token tok(NULL);
+        tok.str("Name");
+        ASSERT_EQUALS(true, tok.isName());
+    }
+
+    void isNameGuarantees2() {
+        Token tok(NULL);
+        tok.str("_name");
+        ASSERT_EQUALS(true, tok.isName());
+    }
+
+    void isNameGuarantees3() {
+        Token tok(NULL);
+        tok.str("_123");
+        ASSERT_EQUALS(true, tok.isName());
+    }
+
+    void isNameGuarantees4() {
+        Token tok(NULL);
+        tok.str("123456");
+        ASSERT_EQUALS(false, tok.isName());
+        ASSERT_EQUALS(true, tok.isNumber());
+    }
+
+    void isNameGuarantees5() {
+        Token tok(NULL);
+        tok.str("a123456");
+        ASSERT_EQUALS(true, tok.isName());
+        ASSERT_EQUALS(false, tok.isNumber());
     }
 };
 

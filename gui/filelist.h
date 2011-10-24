@@ -35,8 +35,7 @@
  * there is ignore filters then only paths not matching those filters are
  * returned.
  */
-class FileList
-{
+class FileList {
 public:
 
     /**
@@ -80,7 +79,7 @@ protected:
 
     /**
     * @brief Test if filename matches the filename extensions filtering.
-    * @param true if filename matches filtering.
+    * @return true if filename matches filtering.
     */
     bool FilterMatches(const QFileInfo &inf);
 

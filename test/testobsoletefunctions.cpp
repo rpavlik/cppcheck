@@ -25,16 +25,14 @@
 
 extern std::ostringstream errout;
 
-class TestObsoleteFunctions : public TestFixture
-{
+class TestObsoleteFunctions : public TestFixture {
 public:
     TestObsoleteFunctions() : TestFixture("TestObsoleteFunctions")
     { }
 
 private:
 
-    void run()
-    {
+    void run() {
         TEST_CASE(testbsd_signal);
         TEST_CASE(testgethostbyname);
         TEST_CASE(testgethostbyaddr);
@@ -63,17 +61,21 @@ private:
         // c declared function
         TEST_CASE(test_c_declaration);
 
+        // function with body
+        TEST_CASE(test_function_with_body);
+
+        // null pointer dereference in obsoleteFunctions
+        TEST_CASE(ticket3238);
     }
 
-    void check(const char code[])
-    {
+    void check(const char code[]) {
         // Clear the error buffer..
         errout.str("");
 
         Settings settings;
         settings.addEnabled("style");
-        settings.posix = true;
-        settings.c99 = true;
+        settings.standards.posix = true;
+        settings.standards.c99 = true;
 
         // Tokenize..
         Tokenizer tokenizer(&settings, this);
@@ -92,8 +94,7 @@ private:
         checkObsoleteFunctions.obsoleteFunctions();
     }
 
-    void testbsd_signal()
-    {
+    void testbsd_signal() {
         check("void f()\n"
               "{\n"
               "    bsd_signal(SIGABRT, SIG_IGN);\n"
@@ -109,8 +110,7 @@ private:
     }
 
 
-    void testgethostbyname()
-    {
+    void testgethostbyname() {
         check("void f()\n"
               "{\n"
               "    struct hostent *hp;\n"
@@ -121,8 +121,7 @@ private:
         ASSERT_EQUALS("[test.cpp:4]: (style) Found obsolete function 'gethostbyname'. It is recommended that new applications use the 'getaddrinfo' function\n", errout.str());
     }
 
-    void testgethostbyaddr()
-    {
+    void testgethostbyaddr() {
         check("void f()\n"
               "{\n"
               "    long addr;\n"
@@ -134,8 +133,7 @@ private:
         ASSERT_EQUALS("[test.cpp:5]: (style) Found obsolete function 'gethostbyaddr'. It is recommended that new applications use the 'getnameinfo' function\n", errout.str());
     }
 
-    void testusleep()
-    {
+    void testusleep() {
         check("void f()\n"
               "{\n"
               "    usleep( 1000 );\n"
@@ -143,8 +141,7 @@ private:
         ASSERT_EQUALS("[test.cpp:3]: (style) Found obsolete function 'usleep'. It is recommended that new applications use the 'nanosleep' or 'setitimer' function\n", errout.str());
     }
 
-    void testindex()
-    {
+    void testindex() {
 
         check("namespace n1 {\n"
               "    int index(){};\n"
@@ -185,16 +182,14 @@ private:
                       errout.str());
     }
 
-    void test_qt_index()
-    {
+    void test_qt_index() {
         check("void TDataModel::forceRowRefresh(int row) {\n"
               "    emit dataChanged(index(row, 0), index(row, columnCount() - 1));\n"
               "}\n");
         ASSERT_EQUALS("[test.cpp:2]: (style) Found obsolete function 'index'. It is recommended to use the function 'strchr' instead\n", errout.str());
     }
 
-    void testrindex()
-    {
+    void testrindex() {
         check("void f()\n"
               "{\n"
               "    int rindex( 0 );\n"
@@ -210,8 +205,7 @@ private:
     }
 
 
-    void testvar()
-    {
+    void testvar() {
         check("class Fred {\n"
               "public:\n"
               "    Fred() : index(0) { }\n"
@@ -220,8 +214,7 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
-    void testgets()
-    {
+    void testgets() {
         check("void f()\n"
               "{\n"
               "    char *x = gets();\n"
@@ -229,8 +222,7 @@ private:
         ASSERT_EQUALS("[test.cpp:3]: (style) Found obsolete function 'gets'. It is recommended to use the function 'fgets' instead\n", errout.str());
     }
 
-    void testalloca()
-    {
+    void testalloca() {
         check("void f()\n"
               "{\n"
               "    char *x = alloca(10);\n"
@@ -239,8 +231,7 @@ private:
     }
 
     // ticket #3121
-    void test_declared_function()
-    {
+    void test_declared_function() {
         check("ftime ( int a )\n"
               "{\n"
               "    return a;\n"
@@ -254,8 +245,7 @@ private:
     }
 
     // test std::gets
-    void test_std_gets()
-    {
+    void test_std_gets() {
         check("void f(char * str)\n"
               "{\n"
               "    char *x = std::gets(str);\n"
@@ -264,8 +254,7 @@ private:
     }
 
     // multiple use
-    void test_multiple()
-    {
+    void test_multiple() {
         check("void f(char * str)\n"
               "{\n"
               "    char *x = std::gets(str);\n"
@@ -274,21 +263,35 @@ private:
         ASSERT_EQUALS("[test.cpp:3]: (style) Found obsolete function 'gets'. It is recommended to use the function 'fgets' instead\n[test.cpp:4]: (style) Found obsolete function 'usleep'. It is recommended that new applications use the 'nanosleep' or 'setitimer' function\n", errout.str());
     }
 
-    void test_c_declaration()
-    {
+    void test_c_declaration() {
         check("char * gets ( char * c ) ;\n"
               "int main ()\n"
               "{\n"
               "    char s [ 10 ] ;\n"
               "    gets ( s ) ;\n"
               "}\n");
-        ASSERT_EQUALS("", errout.str());
+        ASSERT_EQUALS("[test.cpp:5]: (style) Found obsolete function 'gets'. It is recommended to use the function 'fgets' instead\n", errout.str());
 
         check("int getcontext(ucontext_t *ucp);\n"
               "int f (ucontext_t *ucp)\n"
               "{\n"
               "    getcontext ( ucp ) ;\n"
               "}\n");
+        ASSERT_EQUALS("[test.cpp:4]: (style) Found obsolete function 'getcontext'. Due to portability issues with this function, applications are recommended to be rewritten to use POSIX threads\n", errout.str());
+    }
+
+    void test_function_with_body() {
+        check("char * gets ( char * c ) { return c; }\n"
+              "int main ()\n"
+              "{\n"
+              "    char s [ 10 ] ;\n"
+              "    gets ( s ) ;\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+    }
+
+    void ticket3238() {
+        check("__FBSDID(\"...\");\n");
         ASSERT_EQUALS("", errout.str());
     }
 

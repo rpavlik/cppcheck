@@ -17,6 +17,7 @@
  */
 
 #include <algorithm>
+#include <ctype.h>      // Borland: tolower
 #include "pathmatch.h"
 
 PathMatch::PathMatch(const std::vector<std::string> &masks)
@@ -30,8 +31,7 @@ bool PathMatch::Match(const std::string &path, bool caseSensitive)
         return false;
 
     std::vector<std::string>::const_iterator iterMask;
-    for (iterMask = _masks.begin(); iterMask != _masks.end(); ++iterMask)
-    {
+    for (iterMask = _masks.begin(); iterMask != _masks.end(); ++iterMask) {
         std::string mask(*iterMask);
         if (!caseSensitive)
             std::transform(mask.begin(), mask.end(), mask.begin(), ::tolower);
@@ -41,8 +41,7 @@ bool PathMatch::Match(const std::string &path, bool caseSensitive)
             std::transform(findpath.begin(), findpath.end(), findpath.begin(), ::tolower);
 
         // Filtering directory name
-        if (mask[mask.length() - 1] == '/')
-        {
+        if (mask[mask.length() - 1] == '/') {
             if (findpath[findpath.length() - 1] != '/')
                 findpath = RemoveFilename(findpath);
 
@@ -59,8 +58,7 @@ bool PathMatch::Match(const std::string &path, bool caseSensitive)
                 return true;
         }
         // Filtering filename
-        else
-        {
+        else {
             if (mask.length() > findpath.length())
                 continue;
             // Check if path ends with mask

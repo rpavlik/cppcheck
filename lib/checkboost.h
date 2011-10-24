@@ -18,53 +18,55 @@
 
 
 //---------------------------------------------------------------------------
-#ifndef CheckPostfixOperatorH
-#define CheckPostfixOperatorH
+#ifndef CHECKBOOST_H
+#define CHECKBOOST_H
 //---------------------------------------------------------------------------
 
 #include "check.h"
 
+class Token;
+
 /// @addtogroup Checks
 /// @{
 
-/**
- * @brief Using postfix operators ++ or -- rather than postfix operator.
- */
 
-class CheckPostfixOperator : public Check {
+/** @brief %Check Boost usage */
+class CheckBoost : public Check {
 public:
-    /** This constructor is used when registering the CheckPostfixOperator */
-    CheckPostfixOperator() : Check(myName())
+    /** This constructor is used when registering the CheckClass */
+    CheckBoost() : Check(myName())
     { }
 
     /** This constructor is used when running checks. */
-    CheckPostfixOperator(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
+    CheckBoost(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
         : Check(myName(), tokenizer, settings, errorLogger)
     { }
 
+    /** Simplified checks. The token list is simplified. */
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-        CheckPostfixOperator checkPostfixOperator(tokenizer, settings, errorLogger);
-        checkPostfixOperator.postfixOperator();
+        CheckBoost checkBoost(tokenizer, settings, errorLogger);
+
+        checkBoost.checkBoostForeachModification();
     }
 
-    /** Check postfix operators */
-    void postfixOperator();
+    /** @brief %Check for container modification while using the BOOST_FOREACH macro */
+    void checkBoostForeachModification();
 
 private:
-    /** Report Error */
-    void postfixOperatorError(const Token *tok);
+    void boostForeachError(const Token *tok);
 
     void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) {
-        CheckPostfixOperator c(0, settings, errorLogger);
-        c.postfixOperatorError(0);
+        CheckBoost c(0, settings, errorLogger);
+        c.boostForeachError(0);
     }
 
     std::string myName() const {
-        return "Using postfix operators";
+        return "Boost usage";
     }
 
     std::string classInfo() const {
-        return "Warn if using postfix operators ++ or -- rather than prefix operator\n";
+        return "Check for invalid usage of Boost:\n"
+               "* container modification during BOOST_FOREACH\n";
     }
 };
 /// @}

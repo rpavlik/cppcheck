@@ -37,15 +37,13 @@ class Settings;
  * The preprocessor has special functionality for extracting the various ifdef
  * configurations that exist in a source file.
  */
-class Preprocessor
-{
+class Preprocessor {
 public:
 
     /**
      * Include file types.
      */
-    enum HeaderTypes
-    {
+    enum HeaderTypes {
         NoHeader = 0,
         UserHeader,
         SystemHeader
@@ -210,6 +208,16 @@ public:
     static bool match_cfg_def(const std::map<std::string, std::string> &cfg, std::string def);
 
     static void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings);
+
+    /**
+     * handle includes for a specific configuration
+     * @param code code in string
+     * @param filePath filename of code
+     * @param includePaths Paths where headers might be
+     * @param defs defines (only values)
+     * \return resulting string
+     */
+    std::string handleIncludes(const std::string &code, const std::string &filePath, const std::list<std::string> &includePaths, std::map<std::string,std::string> &defs);
 
 private:
     void missingInclude(const std::string &filename, unsigned int linenr, const std::string &header, bool userheader);

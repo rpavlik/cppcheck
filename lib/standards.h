@@ -1,6 +1,6 @@
 /*
  * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2011 Daniel Marjam√§ki and Cppcheck team.
+ * Copyright (C) 2007-2011 Marek Zmys≥owski and Cppcheck team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef StandardsH
+#define StandardsH
 
-#include <QtTest>
-#include <QObject>
+/// @addtogroup Core
+/// @{
 
-class TestXmlReportV1: public QObject {
-    Q_OBJECT
 
-private slots:
-    void readXml();
+/**
+ * @brief This is just a container for standards settings.
+ * This struct contains all possible standards that cppcheck recognize.
+ */
+struct Standards {
+    /** Code is C99 standard */
+    bool c99;
+
+    /** Code is posix */
+    bool posix;
+
+    /** Code follows C++11 standard */
+    bool cpp11;
+
+    /** This constructor clear all the variables **/
+    Standards() : c99(false), posix(false), cpp11(false) {};
 };
+
+/// @}
+
+#endif // STANDARDS_H

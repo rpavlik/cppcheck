@@ -25,26 +25,24 @@
 
 extern std::ostringstream errout;
 
-class TestNonReentrantFunctions : public TestFixture
-{
+class TestNonReentrantFunctions : public TestFixture {
 public:
     TestNonReentrantFunctions() : TestFixture("TestNonReentrantFunctions")
     { }
 
 private:
 
-    void run()
-    {
+    void run() {
         TEST_CASE(test_crypt);
+        TEST_CASE(test_namespace_handling);
     }
 
-    void check(const char code[])
-    {
+    void check(const char code[]) {
         // Clear the error buffer..
         errout.str("");
 
         Settings settings;
-        settings.posix = true;
+        settings.standards.posix = true;
         settings.addEnabled("portability");
 
         // Tokenize..
@@ -64,8 +62,7 @@ private:
         checkNonReentrantFunctions.nonReentrantFunctions();
     }
 
-    void test_crypt()
-    {
+    void test_crypt() {
         check("void f(char *pwd)\n"
               "{\n"
               "    char *cpwd;"
@@ -89,8 +86,57 @@ private:
         ASSERT_EQUALS("", errout.str());
     }
 
+    void test_namespace_handling() {
+        check("int f()\n"
+              "{\n"
+              "    time_t t = 0;"
+              "    std::localtime(&t);\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:3]: (portability) Found non reentrant function 'localtime'. For threadsafe applications it is recommended to use the reentrant replacement function 'localtime_r'\n", errout.str());
+
+        // Passed as function argument
+        check("int f()\n"
+              "{\n"
+              "    printf(\"Magic guess: %d\n\", rand());\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:3]: (portability) Found non reentrant function 'rand'. For threadsafe applications it is recommended to use the reentrant replacement function 'rand_r'\n", errout.str());
+
+        // Pass return value
+        check("int f()\n"
+              "{\n"
+              "    time_t t = 0;"
+              "    struct tm *foo = localtime(&t);\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:3]: (portability) Found non reentrant function 'localtime'. For threadsafe applications it is recommended to use the reentrant replacement function 'localtime_r'\n", errout.str());
+
+        // Access via global namespace
+        check("int f()\n"
+              "{\n"
+              "    ::rand();\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:3]: (portability) Found non reentrant function 'rand'. For threadsafe applications it is recommended to use the reentrant replacement function 'rand_r'\n", errout.str());
+
+        // Be quiet on function definitions
+        check("int rand()\n"
+              "{\n"
+              "    return 123;\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+        // Be quiet on other namespaces
+        check("int f()\n"
+              "{\n"
+              "    foobar::rand();\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+        // Be quiet on class member functions
+        check("int f()\n"
+              "{\n"
+              "    foobar.rand();\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+    }
 };
 
 REGISTER_TEST(TestNonReentrantFunctions)
-
-

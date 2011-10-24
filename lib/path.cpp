@@ -49,57 +49,45 @@ std::string Path::simplifyPath(const char *originalPath)
 {
     // Skip ./ at the beginning
     if (strlen(originalPath) > 2 && originalPath[0] == '.' &&
-        originalPath[1] == '/')
-    {
+        originalPath[1] == '/') {
         originalPath += 2;
     }
 
     std::string subPath = "";
     std::vector<std::string> pathParts;
-    for (; *originalPath; ++originalPath)
-    {
-        if (*originalPath == '/' || *originalPath == '\\')
-        {
-            if (subPath.length() > 0)
-            {
+    for (; *originalPath; ++originalPath) {
+        if (*originalPath == '/' || *originalPath == '\\') {
+            if (subPath.length() > 0) {
                 pathParts.push_back(subPath);
                 subPath = "";
             }
 
             pathParts.push_back(std::string(1 , *originalPath));
-        }
-        else
+        } else
             subPath.append(1, *originalPath);
     }
 
     if (subPath.length() > 0)
         pathParts.push_back(subPath);
 
-    for (unsigned int i = 0; i < pathParts.size(); ++i)
-    {
-        if (i > 1 && pathParts[i-2] != ".." && pathParts[i] == ".." && pathParts.size() > i + 1)
-        {
+    for (unsigned int i = 0; i < pathParts.size(); ++i) {
+        if (i > 1 && pathParts[i-2] != ".." && pathParts[i] == ".." && pathParts.size() > i + 1) {
             pathParts.erase(pathParts.begin() + static_cast<int>(i) + 1);
             pathParts.erase(pathParts.begin() + static_cast<int>(i));
             pathParts.erase(pathParts.begin() + static_cast<int>(i) - 1);
             pathParts.erase(pathParts.begin() + static_cast<int>(i) - 2);
             i = 0;
-        }
-        else if (i > 0 && pathParts[i] == ".")
-        {
+        } else if (i > 0 && pathParts[i] == ".") {
             pathParts.erase(pathParts.begin() + static_cast<int>(i));
             i = 0;
-        }
-        else if (pathParts[i] == "/" && i > 0 && pathParts[i-1] == "/")
-        {
+        } else if (pathParts[i] == "/" && i > 0 && pathParts[i-1] == "/") {
             pathParts.erase(pathParts.begin() + static_cast<int>(i) - 1);
             i = 0;
         }
     }
 
     std::ostringstream oss;
-    for (std::vector<std::string>::size_type i = 0; i < pathParts.size(); ++i)
-    {
+    for (std::vector<std::string>::size_type i = 0; i < pathParts.size(); ++i) {
         oss << pathParts[i];
     }
 
@@ -108,7 +96,7 @@ std::string Path::simplifyPath(const char *originalPath)
 
 bool Path::sameFileName(const std::string &fname1, const std::string &fname2)
 {
-#if defined(__linux__) || defined(__sun)
+#if defined(__linux__) || defined(__sun) || defined(__hpux)
     return bool(fname1 == fname2);
 #elif defined(__GNUC__)
     return bool(strcasecmp(fname1.c_str(), fname2.c_str()) == 0);
