@@ -19,10 +19,19 @@
 #ifndef TRANSLATIONHANDLER_H
 #define TRANSLATIONHANDLER_H
 
+#include <QList>
+#include <QObject>
 #include <QStringList>
 #include <QTranslator>
-#include <QObject>
-#include <QList>
+
+#include "qatomic_x86_64.h"             // for QBasicAtomicInt::deref
+#include <QList>                      // for QList
+#include <QObject>                    // for QObject
+                // for Q_OBJECT
+#include <QString>                    // for QString
+#include <QStringList>                // for QStringList
+
+class QTranslator;
 
 /// @addtogroup GUI
 /// @{

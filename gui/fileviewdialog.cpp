@@ -16,11 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QFile>
-#include <QByteArray>
-#include <QMessageBox>
-#include <QTextEdit>
 #include "fileviewdialog.h"
+#include <QByteArray>                 // for QByteArray
+#include <QDialogButtonBox>           // for QDialogButtonBox
+#include <QFile>                      // for QFile
+#include <QIODevice>                  // for QIODevice, etc
+#include <QMessageBox>                // for QMessageBox, etc
+#include <QTextEdit>                  // for QTextEdit
 
 FileViewDialog::FileViewDialog(const QString &file,
                                const QString &title,

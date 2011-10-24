@@ -20,23 +20,23 @@
 #ifndef RESULTSTREE_H
 #define RESULTSTREE_H
 
-#include <QTreeView>
-#include <QStandardItemModel>
-#include <QStandardItem>
-#include <QSettings>
-#include <QContextMenuEvent>
-#include <QTextStream>
-#include "common.h"
-#include "applicationlist.h"
-#include "errorlogger.h" // Severity
-#include "showtypes.h"
+#include <QStandardItemModel>         // for QStandardItemModel
+#include <QString>                    // for QString
+#include <QTreeView>                  // for QTreeView
 
-class Report;
+#include "errorlogger.h"              // for Severity, etc
+#include "showtypes.h"                // for ShowTypes, etc
+
+class ApplicationList;
 class ErrorItem;
 class ErrorLine;
-class QModelIndex;
-class QWidget;
+class QContextMenuEvent;
 class QItemSelectionModel;
+class QModelIndex;
+class QSettings;
+class QStandardItem;
+class QWidget;
+class Report;
 
 /// @addtogroup GUI
 /// @{

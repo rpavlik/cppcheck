@@ -17,10 +17,16 @@
  */
 
 
+#include <stddef.h>                     // for NULL
+#include <list>                         // for list
+#include <utility>                      // for pair
+#include <vector>                       // for vector
+
 //---------------------------------------------------------------------------
 #include "checkunusedfunctions.h"
-#include "tokenize.h"
-#include "token.h"
+#include "errorlogger.h"
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 //---------------------------------------------------------------------------
 
 

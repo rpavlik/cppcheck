@@ -17,11 +17,9 @@
  */
 
 #include "errorlogger.h"
-#include "path.h"
-#include "cppcheck.h"
-
-#include <sstream>
-#include <vector>
+#include "cppcheck.h"                   // for CppCheck
+#include "path.h"                       // for Path
+#include <sstream>                      // for ostringstream, istringstream
 
 ErrorLogger::ErrorMessage::ErrorMessage()
     :_severity(Severity::none)

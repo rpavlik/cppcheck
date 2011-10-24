@@ -19,12 +19,12 @@
 #ifndef FILEVIEW_DIALOG_H
 #define FILEVIEW_DIALOG_H
 
-#include <QDialog>
-#include <QString>
-#include "ui_file.h"
+#include <QDialog>                      // for QDialog
+#include <QString>                      // for QString
+#include "ui_file.h"                    // for Fileview
 
-class QWidget;
 class QTextEdit;
+class QWidget;
 
 /// @addtogroup GUI
 /// @{

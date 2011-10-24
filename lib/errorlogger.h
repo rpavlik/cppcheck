@@ -20,11 +20,10 @@
 #ifndef errorloggerH
 #define errorloggerH
 
-#include <list>
-#include <string>
+#include <list>                         // for list
+#include <string>                       // for string, operator==
 
-#include "settings.h"
-#include "suppressions.h"
+#include "suppressions.h"               // for Suppressions
 
 class Token;
 class Tokenizer;

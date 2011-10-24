@@ -17,15 +17,17 @@
  */
 
 
-#include <QApplication>
-#include <QCoreApplication>
-#include <QTextCodec>
-#include <QTranslator>
-#include <QMetaType>
-#include <QStringList>
-#include <iostream>
-#include "mainwindow.h"
-#include "erroritem.h"
+#include <iostream>                     // for operator<<, cout, ostream
+#include <QApplication>                 // for QApplication
+#include <QCoreApplication>             // for QCoreApplication
+#include <QBool>                        // for QBool
+#include <QIcon>                        // for QIcon
+#include <QMetaType>                    // for qRegisterMetaType
+#include <QStringList>                  // for QStringList
+#include <QTextCodec>                   // for QTextCodec
+
+#include "erroritem.h"                  // for ErrorItem
+#include "mainwindow.h"                 // for MainWindow
 
 void ShowUsage();
 bool CheckArgs(const QStringList &args);

@@ -22,7 +22,11 @@
 //---------------------------------------------------------------------------
 
 #include "checkpostfixoperator.h"
-#include "symboldatabase.h"
+#include "errorlogger.h"                // for Severity, etc
+#include "settings.h"                   // for Settings
+#include "symboldatabase.h"             // for Variable, SymbolDatabase
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 //---------------------------------------------------------------------------
 

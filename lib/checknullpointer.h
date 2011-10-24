@@ -22,10 +22,16 @@
 #define checknullpointerH
 //---------------------------------------------------------------------------
 
-#include "check.h"
+#include <list>                         // for list
+#include <string>                       // for string
+
+#include "check.h"                      // for Check
 #include "settings.h"
 
+class ErrorLogger;
+class Settings;
 class Token;
+class Tokenizer;
 
 /// @addtogroup Checks
 /// @{

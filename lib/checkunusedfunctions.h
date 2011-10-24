@@ -22,9 +22,16 @@
 #define checkunusedfunctionsH
 //---------------------------------------------------------------------------
 
-#include "check.h"
-#include "tokenize.h"
+#include <map>                          // for map
+#include <string>                       // for string
+
+#include "check.h"                      // for Check
 #include "errorlogger.h"
+#include "tokenize.h"
+
+class ErrorLogger;
+class Settings;
+class Tokenizer;
 
 /// @addtogroup Checks
 /// @{

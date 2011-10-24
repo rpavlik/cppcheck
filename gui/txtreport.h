@@ -19,12 +19,19 @@
 #ifndef TXT_REPORT_H
 #define TXT_REPORT_H
 
+#include <QFile>
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QFile>
 #include <QTextStream>
-#include "report.h"
+
+#include "erroritem.h"                  // for ErrorItem
+                // for Q_OBJECT
+#include <QString>                    // for QString
+#include "qtextstream.h"                // for QTextStream
+#include "report.h"                     // for Report
+
+class QObject;
 
 /// @addtogroup GUI
 /// @{

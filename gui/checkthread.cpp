@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QString>
-#include <QDebug>
 #include "checkthread.h"
-#include "threadresult.h"
-#include "cppcheck.h"
+#include <QDebug>                     // for qDebug, QDebug
+#include "cppcheck.h"                   // for CppCheck
+#include "threadresult.h"               // for ThreadResult
+
+class Settings;
 
 CheckThread::CheckThread(ThreadResult &result) :
     mState(Ready),

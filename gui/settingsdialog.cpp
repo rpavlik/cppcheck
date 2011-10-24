@@ -17,21 +17,26 @@
  */
 
 
-#include <QDialog>
-#include <QWidget>
-#include <QLabel>
-#include <QList>
-#include <QDebug>
-#include <QListWidgetItem>
-#include <QTabWidget>
-#include <QSettings>
-#include <QFileDialog>
-#include <QThread>
-#include "settingsdialog.h"
-#include "applicationdialog.h"
-#include "applicationlist.h"
-#include "translationhandler.h"
+#include <QCheckBox>                  // for QCheckBox
+#include <QDialogButtonBox>           // for QDialogButtonBox
+#include <QFileDialog>                // for QFileDialog
+#include <QLabel>                     // for QLabel
+#include <QLineEdit>                  // for QLineEdit
+#include <QList>                      // for QList, etc
+#include <QListWidget>                // for QListWidget, etc
+#include <QPushButton>                // for QPushButton
+#include <QSettings>                  // for QSettings
+#include <QSize>                      // for QSize
+#include <QStringList>                // for QStringList
+#include <QThread>                    // for QThread
+#include <QVariant>                   // for QVariant
+
+#include "application.h"                // for Application
+#include "applicationdialog.h"          // for ApplicationDialog
+#include "applicationlist.h"            // for ApplicationList
 #include "common.h"
+#include "settingsdialog.h"
+#include "translationhandler.h"         // for TranslationInfo, etc
 
 SettingsDialog::SettingsDialog(ApplicationList *list,
                                TranslationHandler *translator,

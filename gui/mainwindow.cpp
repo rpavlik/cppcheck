@@ -16,29 +16,48 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QApplication>
-#include <QDebug>
-#include <QMenu>
-#include <QDirIterator>
-#include <QMenuBar>
-#include <QMessageBox>
-#include <QToolBar>
-#include <QKeySequence>
-#include <QFileInfo>
-#include <QDir>
-#include <QDesktopServices>
-#include <QUrl>
+#include <stddef.h>                     // for NULL
+#include <list>                         // for list
+#include <string>                       // for string
+
+#include <QAction>                    // for QAction
+#include <QActionGroup>               // for QActionGroup
+#include <QApplication>               // for QApplication
+#include <QCoreApplication>           // for QCoreApplication
+#include <QDebug>                     // for QDebug, qDebug
+#include <QDesktopServices>           // for QDesktopServices
+#include <QDialog>                    // for QDialog, etc
+#include <QDir>                       // for QDir, QDir::Filter::Files, etc
+#include <QEvent>                     // for QCloseEvent
+#include <QFileInfo>                  // for QFileInfo
+#include <QLineEdit>                  // for QLineEdit
+#include <QList>                      // for QList, etc
+#include <QMenu>                      // for QMenu
+#include <QMessageBox>                // for QMessageBox, etc
+#include <QObject>                    // for qobject_cast
+#include <QSettings>                  // for QSettings
+#include <QSize>                      // for QSize
+#include <QTimer>                     // for QTimer
+#include <QUrl>                       // for QUrl
+#include <QVariant>                   // for QVariant
+
+#include "aboutdialog.h"                // for AboutDialog
+#include "applicationlist.h"            // for ApplicationList
+#include "common.h"                     // for SETTINGS_MRU_PROJECTS, etc
+#include "cppcheck.h"                   // for CppCheck
+#include "filelist.h"                   // for FileList
+#include "fileviewdialog.h"             // for FileViewDialog
+#include "logview.h"                    // for LogView
 #include "mainwindow.h"
-#include "aboutdialog.h"
-#include "threadhandler.h"
-#include "fileviewdialog.h"
-#include "projectfile.h"
-#include "project.h"
-#include "report.h"
-#include "statsdialog.h"
-#include "logview.h"
-#include "filelist.h"
-#include "showtypes.h"
+#include "project.h"                    // for Project
+#include "projectfile.h"                // for ProjectFile
+#include "report.h"                     // for Report, Report::Type::TXT, etc
+#include "resultsview.h"                // for ResultsView
+#include "settingsdialog.h"             // for SettingsDialog
+#include "showtypes.h"                  // for ShowTypes, etc
+#include "statsdialog.h"                // for StatsDialog
+#include "threadhandler.h"              // for ThreadHandler
+#include "translationhandler.h"         // for TranslationHandler
 
 static const QString OnlineHelpURL("http://cppcheck.sourceforge.net/manual.html");
 

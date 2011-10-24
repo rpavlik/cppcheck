@@ -16,36 +16,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QApplication>
-#include <QWidget>
-#include <QStandardItem>
-#include <QModelIndex>
-#include <QDebug>
-#include <QString>
-#include <QStringList>
-#include <QList>
-#include <QMap>
-#include <QVariant>
-#include <QMenu>
-#include <QSignalMapper>
-#include <QProcess>
-#include <QDir>
-#include <QMessageBox>
-#include <QAction>
-#include <QFileInfo>
-#include <QFileDialog>
-#include <QClipboard>
-#include <QContextMenuEvent>
-#include <QModelIndex>
-#include <QItemSelectionModel>
-#include "erroritem.h"
-#include "settings.h"
-#include "applicationlist.h"
+#include <QAbstractItemModel>         // for QModelIndex, etc
+#include <QAction>                    // for QAction
+#include <QApplication>               // for QApplication
+#include <QContextMenuEvent>          // for QContextMenuEvent
+#include <QClipboard>                 // for QClipboard
+#include <QDebug>                     // for QDebug, qDebug
+#include <QDir>                       // for QDir
+#include <QEvent>                     // for QContextMenuEvent
+#include <QFileDialog>                // for QFileDialog, etc
+#include <QFileInfo>                  // for QFileInfo
+#include <QIcon>                      // for QIcon
+#include <QItemSelectionModel>        // for QItemSelectionModel
+#include <QList>                      // for QList, etc
+#include <QMap>                       // for QMap
+#include <QMenu>                      // for QMenu
+#include <QMessageBox>                // for QMessageBox, etc
+#include <QProcess>                   // for QProcess
+#include <QSettings>                  // for QSettings
+#include <QSignalMapper>              // for QSignalMapper
+#include <QStringList>                // for QStringList
+#include <QVariant>                   // for QVariant, QVariantMap
+
+#include "application.h"              // for Application
+#include "applicationlist.h"          // for ApplicationList
+#include "erroritem.h"                // for ErrorItem, ErrorLine, etc
+#include "report.h"                   // for Report
+#include "showtypes.h"                // for ShowTypes, etc
+#include "common.h"                   // for SETTINGS_RESULT_COLUMN_WIDTH, etc.
 #include "resultstree.h"
-#include "report.h"
-#include "xmlreport.h"
-#include "application.h"
-#include "showtypes.h"
 
 ResultsTree::ResultsTree(QWidget * parent) :
     QTreeView(parent),

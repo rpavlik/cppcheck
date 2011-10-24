@@ -16,10 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stddef.h>                     // for NULL
+#include <list>                         // for list, etc
+#include <set>                          // for set, etc
+#include <sstream>                      // for operator<<, char_traits, etc
+
 #include "checkstl.h"
-#include "executionpath.h"
-#include "symboldatabase.h"
-#include <sstream>
+#include "errorlogger.h"                // for Severity, etc
+#include "executionpath.h"              // for ExecutionPath
+#include "settings.h"                   // for Settings
+#include "symboldatabase.h"             // for Variable, SymbolDatabase, etc
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 // Register this check class (by creating a static instance of it)
 namespace {

@@ -19,8 +19,9 @@
 #ifndef TokenH
 #define TokenH
 
-#include <string>
-#include <vector>
+#include <stddef.h>                     // for size_t
+#include <string>                       // for operator==, string
+#include <vector>                       // for vector
 
 /// @addtogroup Core
 /// @{

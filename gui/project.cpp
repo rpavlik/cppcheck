@@ -16,16 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QObject>
-#include <QWidget>
-#include <QDialog>
-#include <QFile>
-#include <QMessageBox>
-#include <QString>
-#include <QStringList>
+#include <stddef.h>                     // for NULL
+#include <QDialog>                      // for QDialog, etc
+#include <QFile>                        // for QFile
+#include <QMessageBox>                  // for QMessageBox, etc
+#include <QStringList>                  // for QStringList
+#include <QWidget>                      // for QWidget
+
 #include "project.h"
-#include "projectfile.h"
-#include "projectfiledialog.h"
+#include "projectfile.h"                // for ProjectFile
+#include "projectfiledialog.h"          // for ProjectFileDialog
 
 Project::Project(QWidget *parent) :
     QObject(parent),

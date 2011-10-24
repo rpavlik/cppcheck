@@ -19,11 +19,15 @@
 #ifndef XML_REPORT_H
 #define XML_REPORT_H
 
-#include <QString>
 #include <QList>
-#include "report.h"
-#include "erroritem.h"
+#include <QString>
 
+#include "erroritem.h"
+#include <QList>                      // for QList
+#include <QString>                    // for QString
+#include "report.h"                     // for Report
+
+class ErrorItem;
 class QObject;
 
 /// @addtogroup GUI

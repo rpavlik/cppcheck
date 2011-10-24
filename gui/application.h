@@ -19,7 +19,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <QString>
+#include <QString>                    // for QString
 
 /**
 * @brief A class containing information of the application to execute.

@@ -19,9 +19,9 @@
 #ifndef FILELIST_H
 #define FILELIST_H
 
-#include <QList>
-#include <QFileInfoList>
-#include <QStringList>
+#include <QFileInfoList>                  // for QFileInfo, QFileInfoList
+#include <QString>                        // for QString
+#include <QStringList>                    // for QStringList
 
 /**
  * @brief A class for listing files and directories to check.

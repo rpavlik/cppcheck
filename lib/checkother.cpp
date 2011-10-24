@@ -17,14 +17,22 @@
  */
 
 
+#include <cctype>                       // for isalpha, isdigit
+#include <cmath>                        // for fabs
+#include <list>                         // for list, _List_const_iterator, etc
+#include <map>                          // for map, etc
+#include <ostream>                      // for operator<<, ostringstream, etc
+#include <set>                          // for set
+#include <stack>                        // for stack
+#include <utility>                      // for pair, make_pair
+
 //---------------------------------------------------------------------------
 #include "checkother.h"
-#include "mathlib.h"
-#include "symboldatabase.h"
-
-#include <cctype>
-#include <cmath> // fabs()
-#include <stack>
+#include "errorlogger.h"                // for Severity, etc
+#include "mathlib.h"                    // for MathLib, MathLib::bigint
+#include "settings.h"                   // for Settings
+#include "symboldatabase.h"             // for Scope, SymbolDatabase, etc
+#include "tokenize.h"                   // for Tokenizer
 //---------------------------------------------------------------------------
 
 // Register this check class (by creating a static instance of it)

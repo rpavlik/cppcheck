@@ -16,18 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QObject>
-#include <QString>
-#include <QList>
-#include <QDir>
-#include <QFile>
-#include <QXmlStreamWriter>
-#include <QDebug>
-#include "report.h"
-#include "erroritem.h"
-#include "xmlreport.h"
+#include <stddef.h>                     // for NULL
+
+#include "cppcheck.h"                   // for CppCheck
+#include "erroritem.h"                  // for ErrorItem, GuiSeverity
+#include "qatomic_x86_64.h"             // for QBasicAtomicInt::deref
+#include <QDebug>                     // for qDebug, QDebug
+#include <QDir>                       // for QDir
+#include "qfile.h"                      // for QFile
+#include "qglobal.h"                    // for qFree
+#include <QStringList>                // for QStringList
+#include "qxmlstream.h"                 // for QXmlStreamReader, etc
+#include "report.h"                     // for Report
+#include "xmlreport.h"                  // for XmlReport
 #include "xmlreportv2.h"
-#include "cppcheck.h"
+
+class QObject;
 
 static const char ResultElementName[] = "results";
 static const char CppcheckElementName[] = "cppcheck";

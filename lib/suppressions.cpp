@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "suppressions.h"
-#include "settings.h"
-#include "path.h"
+#include <cctype>                       // for isalnum, isdigit
+#include <stack>                        // for stack
+#include <utility>                      // for pair, make_pair
+#include <fstream>                      // for ifstream
+#include <sstream>                      // for istringstream
 
-#include <sstream>
-#include <iostream>
-#include <stack>
-#include <cctype>   // std::isdigit, std::isalnum, etc
+#include "path.h"                       // for Path
+#include "suppressions.h"
 
 std::string Suppressions::parseFile(std::istream &istr)
 {

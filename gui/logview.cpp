@@ -16,13 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QFile>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QSettings>
-#include <QTextStream>
-#include "common.h"
+#include "common.h"                     // for SETTINGS_LOG_VIEW_HEIGHT, etc
 #include "logview.h"
+#include <QFile>                      // for QFile
+#include <QFileDialog>                // for QFileDialog
+#include <QIODevice>                  // for QIODevice, etc
+#include <QMessageBox>                // for QMessageBox
+#include <QPlainTextEdit>             // for QPlainTextEdit
+#include <QPushButton>                // for QPushButton
+#include <QSettings>                  // for QSettings
+#include <QSize>                      // for QSize
+#include <QTextStream>                // for QTextStream
+#include <QVariant>                   // for QVariant
 
 LogView::LogView(QWidget *parent)
 {

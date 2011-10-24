@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QObject>
-#include <QString>
-#include <QXmlStreamReader>
-#include <QXmlStreamWriter>
-#include <QFile>
-#include <QDir>
 #include "projectfile.h"
+#include <QDir>                       // for QDir
+#include <QFile>                      // for QFile
+#include <QIODevice>                  // for QIODevice, etc
+#include <QList>                      // for QList<>::const_iterator
+#include <QXmlStreamReader>           // for QXmlStreamReader
+#include <QXmlStreamWriter>           // for QXmlStreamWriter
 
 static const char ProjectElementName[] = "project";
 static const char ProjectVersionAttrib[] = "version";

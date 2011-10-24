@@ -19,12 +19,13 @@
 #ifndef CSV_REPORT_H
 #define CSV_REPORT_H
 
-#include <QObject>
-#include <QString>
-#include <QStringList>
-#include <QFile>
-#include <QTextStream>
-#include "report.h"
+#include <QString>                    // for QString
+#include <QTextStream>                // for QTextStream
+
+#include "erroritem.h"                  // for ErrorItem
+#include "report.h"                     // for Report
+
+class QObject;
 
 /// @addtogroup GUI
 /// @{

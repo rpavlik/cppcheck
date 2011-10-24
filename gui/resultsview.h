@@ -20,19 +20,21 @@
 #ifndef RESULTSVIEW_H
 #define RESULTSVIEW_H
 
+#include <QString>                      // for QString
+#include <QWidget>                      // for QWidget
 
-#include <QWidget>
-#include "errorlogger.h"
 #include "common.h"
-#include "report.h"
-#include "showtypes.h"
-#include "ui_resultsview.h"
+#include "errorlogger.h"
+#include "report.h"                     // for Report, Report::Type
+#include "resultstree.h"                // for ResultsTree
+#include "showtypes.h"                  // for ShowTypes, etc
+#include "ui_resultsview.h"             // for ResultsView
 
-class ErrorItem;
 class ApplicationList;
+class CheckStatistics;
+class ErrorItem;
 class QModelIndex;
 class QSettings;
-class CheckStatistics;
 
 /// @addtogroup GUI
 /// @{

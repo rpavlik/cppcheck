@@ -18,17 +18,14 @@
 
 
 
-#include "mathlib.h"
-#include "tokenize.h"
+#include <cctype>                       // for isdigit, isspace, tolower, etc
+#include <cmath>                        // for abs, cos, sin, tan
+#include <cstdlib>                      // for atof, strtoul
+#include <sstream>                      // for istringstream, etc
+#include <string>                       // for string, operator==, etc
 
-#include <fstream>
-#include <string>
-#include <cstring>
-#include <iostream>
-#include <sstream>
-#include <cstdlib>
-#include <cmath>
-#include <cctype>
+#include "mathlib.h"
+#include "tokenize.h"                   // for Tokenizer
 
 MathLib::bigint MathLib::toLongNumber(const std::string &str)
 {

@@ -16,22 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>                    // for fill_n
+#include <climits>                      // for CHAR_MAX, INT_MAX, etc
+#include <cstring>                      // for NULL
+#include <string>                       // for operator==, string, etc
+
 //---------------------------------------------------------------------------
 #include "symboldatabase.h"
-
-#include "tokenize.h"
-#include "token.h"
-#include "settings.h"
+#include "check.h"                      // for Check
 #include "errorlogger.h"
-#include "check.h"
-
-#include <locale>
-
-#include <cstring>
-#include <string>
-#include <sstream>
-#include <algorithm>
-#include <climits>
+#include "settings.h"                   // for Settings
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 // Define ULLONG_MAX and LLONG_MAX for Borland
 #ifdef __BORLANDC__

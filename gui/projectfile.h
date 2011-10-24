@@ -19,10 +19,11 @@
 #ifndef PROJECT_FILE_H
 #define PROJECT_FILE_H
 
-#include <QObject>
-#include <QString>
-#include <QStringList>
-#include <QXmlStreamReader>
+#include <QObject>                    // for QObject
+#include <QString>                    // for QString
+#include <QStringList>                // for QStringList
+
+class QXmlStreamReader;
 
 /// @addtogroup GUI
 /// @{

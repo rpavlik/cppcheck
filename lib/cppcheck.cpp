@@ -15,20 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <stddef.h>                     // for size_t
+#include <algorithm>                    // for find
+#include <set>                          // for set
+#include <stdexcept>                    // for runtime_error
+#include <fstream>                      // for ifstream
+
+#include "check.h"                      // for Check
 #include "cppcheck.h"
-
-#include "preprocessor.h" // preprocessor.
-#include "tokenize.h"   // <- Tokenizer
-
-#include "check.h"
-#include "path.h"
-
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <ctime>
-#include "timer.h"
+#include "path.h"                       // for Path
+#include "preprocessor.h"               // for Preprocessor
+#include "suppressions.h"               // for Suppressions
+#include "timer.h"                      // for Timer, TimerResults, etc
+#include "tokenize.h"                   // for Tokenizer
 
 #ifdef HAVE_RULES
 #define PCRE_STATIC

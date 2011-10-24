@@ -19,15 +19,13 @@
 #ifndef PROJECTFILE_DIALOG_H
 #define PROJECTFILE_DIALOG_H
 
-#include <QDialog>
-#include <QString>
-#include <QStringList>
+#include <QDialog>                    // for QDialog
+#include <QString>                    // for QString
+#include <QStringList>                // for QStringList
+#include "ui_projectfile.h"           // for ProjectFile
 
-#include "ui_projectfile.h"
-
-class ProjectFile;
-class QWidget;
 class QLineEdit;
+class QWidget;
 
 /// @addtogroup GUI
 /// @{

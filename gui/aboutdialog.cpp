@@ -16,10 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QDialog>
-#include <QWidget>
-#include <QString>
 #include "aboutdialog.h"
+
+#include <QDialogButtonBox>             // for QDialogButtonBox
+#include <QLabel>                       // for QLabel
 
 AboutDialog::AboutDialog(const QString &version, const QString &extraVersion, QWidget *parent)
     : QDialog(parent)

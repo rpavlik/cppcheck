@@ -16,16 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QStringList>
-#include <QFileInfo>
-#include <QObject>
-#include <QSettings>
-#include <QStringList>
-#include <stdlib.h>
-#include "common.h"
-#include "applicationlist.h"
-#include "application.h"
+#include <stdlib.h>                     // for getenv
 
+#include <QFileInfo>                  // for QFileInfo
+#include <QSettings>                  // for QSettings
+#include <QString>                    // for QString, operator+
+#include <QStringList>                // for QStringList
+#include <QVariant>                   // for QVariant
+
+#include "application.h"                // for Application
+#include "applicationlist.h"
+#include "common.h"
 
 ApplicationList::ApplicationList(QObject *parent) :
     QObject(parent),

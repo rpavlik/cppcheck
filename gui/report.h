@@ -19,11 +19,10 @@
 #ifndef REPORT_H
 #define REPORT_H
 
-#include <QObject>
-#include <QString>
-#include <QStringList>
-#include <QFile>
-#include "erroritem.h"
+#include "erroritem.h"                // for ErrorItem
+#include <QFile>                      // for QFile
+#include <QObject>                    // for QObject
+#include <QString>                    // for QString
 
 /// @addtogroup GUI
 /// @{

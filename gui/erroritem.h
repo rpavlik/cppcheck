@@ -19,10 +19,11 @@
 #ifndef ERRORITEM_H
 #define ERRORITEM_H
 
-#include <QString>
-#include <QStringList>
-#include <QMetaType>
-#include "errorlogger.h"
+#include "errorlogger.h"                // for Severity::SeverityType, etc
+#include <QList>                        // for QList
+#include <QMetaType>                    // for Q_DECLARE_METATYPE
+#include <QString>                      // for QString
+#include <QStringList>                  // for QStringList
 
 class ErrorLine;
 

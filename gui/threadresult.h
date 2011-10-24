@@ -24,7 +24,15 @@
 #include <QObject>
 #include <QStringList>
 #include <QVariant>
-#include "errorlogger.h"
+#include <string>                       // for string
+
+#include "errorlogger.h"                // for ErrorLogger
+#include "qglobal.h"                    // for quint64
+#include "qmutex.h"                     // for QMutex
+#include <QObject>                    // for QObject
+                // for Q_OBJECT, signals, slots
+#include <QString>                    // for QString
+#include <QStringList>                // for QStringList
 
 class ErrorItem;
 

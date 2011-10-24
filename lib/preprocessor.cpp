@@ -17,23 +17,24 @@
  */
 
 
-#include "preprocessor.h"
-#include "tokenize.h"
-#include "token.h"
-#include "path.h"
-#include "errorlogger.h"
-#include "settings.h"
+#include <stddef.h>                     // for size_t
+#include <algorithm>                    // for replace, transform, find
+#include <cctype>                       // for isalnum, isspace, isalpha, etc
+#include <cstdlib>                      // for NULL
+#include <set>                          // for set, set<>::const_iterator
+#include <stack>                        // for stack
+#include <utility>                      // for pair
+#include <vector>                       // for vector
+#include <sstream>                      // for ostringstream, istringstream
+#include <fstream>                      // for ifstream
 
-#include <algorithm>
-#include <stdexcept>
-#include <sstream>
-#include <fstream>
-#include <cstdlib>
-#include <cctype>
-#include <cstring>
-#include <vector>
-#include <set>
-#include <stack>
+#include "errorlogger.h"
+#include "path.h"                       // for Path
+#include "preprocessor.h"
+#include "settings.h"                   // for Settings
+#include "suppressions.h"               // for Suppressions
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 bool Preprocessor::missingIncludeFlag;
 

@@ -20,8 +20,8 @@
 #ifndef mathlibH
 #define mathlibH
 
-#include <string>
-#include <sstream>
+#include <string>                       // for string
+#include <sstream>                      // for ostringstream
 
 /// @addtogroup Core
 /// @{

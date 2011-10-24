@@ -16,16 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QWidget>
-#include <QDialog>
-#include <QString>
-#include <QClipboard>
-#include <QMimeData>
-#include "common.h"
-#include "project.h"
-#include "projectfile.h"
+#include <QApplication>               // for QApplication
+#include <QClipboard>                 // for QClipboard
+#include <QLabel>                     // for QLabel
+#include <QLineEdit>                  // for QLineEdit
+#include <QMimeData>                  // for QMimeData
+#include <QPushButton>                // for QPushButton
+#include <QStringList>                // for QStringList
+
+#include "checkstatistics.h"            // for CheckStatistics
+#include "project.h"                    // for Project
+#include "projectfile.h"                // for ProjectFile
+#include "showtypes.h"                  // for ShowTypes, etc
 #include "statsdialog.h"
-#include "checkstatistics.h"
+
+class QWidget;
 
 StatsDialog::StatsDialog(QWidget *parent)
     : QDialog(parent)

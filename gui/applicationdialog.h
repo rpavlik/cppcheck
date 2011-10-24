@@ -19,11 +19,12 @@
 #ifndef APPLICATIONDIALOG_H
 #define APPLICATIONDIALOG_H
 
-#include <QDialog>
+#include <QDialog>                    // for QDialog
 #include <QLineEdit>
-#include <QString>
-#include "application.h"
-#include "ui_application.h"
+#include <QString>                    // for QString
+
+#include "application.h"                // for Application
+#include "ui_application.h"             // for ApplicationDialog
 
 class QWidget;
 

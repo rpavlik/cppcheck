@@ -16,17 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "token.h"
+#include <cassert>                      // for assert
+#include <cctype>                       // for isdigit, isalpha
+#include <cstdlib>                      // for abs, NULL
+#include <cstring>                      // for strchr, strlen, strncmp
+#include <iostream>                     // for operator<<, basic_ostream, etc
+#include <list>                         // for list
+#include <map>                          // for map
+#include <string>                       // for string, operator==, etc
+#include <sstream>                      // for ostringstream
+
+#include "check.h"                      // for Check
 #include "errorlogger.h"
-#include "check.h"
-#include <cassert>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-#include <iostream>
-#include <cctype>
-#include <sstream>
-#include <map>
+#include "token.h"
 
 Token::Token(Token **t) :
     tokensBack(t),

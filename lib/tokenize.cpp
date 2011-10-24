@@ -22,23 +22,26 @@
 #pragma warning(disable: 4503)
 #endif
 
-#include "tokenize.h"
-#include "token.h"
-#include "mathlib.h"
-#include "settings.h"
-#include "errorlogger.h"
-#include "check.h"
-#include "path.h"
-#include "symboldatabase.h"
+#include <stddef.h>                     // for size_t
+#include <cassert>                      // for assert
+#include <cctype>                       // for isdigit, isxdigit
+#include <cstdlib>                      // for NULL, strtoul
+#include <cstring>                      // for strchr, strncmp, strstr
+#include <list>                         // for list, _List_iterator, etc
+#include <sstream>                      // for basic_ostream, operator<<, etc
+#include <stack>                        // for stack
+#include <string>                       // for string, operator==, etc
+#include <utility>                      // for pair
 
-#include <string>
-#include <cstring>
-#include <sstream>
-#include <list>
-#include <cassert>
-#include <cctype>
-#include <stack>
-#include <cstdlib>
+#include "check.h"                      // for Check
+#include "errorlogger.h"
+#include "mathlib.h"                    // for MathLib, MathLib::bigint
+#include "path.h"                       // for Path
+#include "settings.h"                   // for Settings, etc
+#include "standards.h"                  // for Standards
+#include "symboldatabase.h"             // for Variable, SymbolDatabase, etc
+#include "token.h"                      // for Token
+#include "tokenize.h"
 
 //---------------------------------------------------------------------------
 

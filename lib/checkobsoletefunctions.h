@@ -22,9 +22,16 @@
 #define CheckObsoleteFunctionsH
 //---------------------------------------------------------------------------
 
-#include "check.h"
-#include <string>
 #include <list>
+#include <map>                          // for map, map<>::mapped_type, etc
+#include <string>                       // for string, operator<, etc
+#include <utility>                      // for pair
+
+#include "check.h"                      // for Check
+#include "errorlogger.h"                // for ErrorLogger (ptr only), etc
+
+class Settings;
+class Tokenizer;
 
 
 /// @addtogroup Checks

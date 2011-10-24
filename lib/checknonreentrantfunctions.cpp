@@ -21,6 +21,10 @@
 //---------------------------------------------------------------------------
 
 #include "checknonreentrantfunctions.h"
+#include "settings.h"                   // for Settings
+#include "standards.h"                  // for Standards
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 //---------------------------------------------------------------------------
 

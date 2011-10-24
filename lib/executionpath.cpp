@@ -17,12 +17,15 @@
  */
 
 
+#include <auto_ptr.h>                   // for auto_ptr, etc
+#include <algorithm>                    // for copy
+#include <iostream>                     // for operator<<, basic_ostream, etc
+#include <iterator>                     // for back_insert_iterator, etc
+#include <set>                          // for _Rb_tree_const_iterator, etc
+#include <string>                       // for operator==, string, etc
+
 #include "executionpath.h"
-#include "token.h"
-#include <memory>
-#include <set>
-#include <iterator>
-#include <iostream>
+#include "token.h"                      // for Token
 
 
 

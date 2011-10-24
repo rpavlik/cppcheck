@@ -19,11 +19,13 @@
 #ifndef STATSDIALOG_H
 #define STATSDIALOG_H
 
-#include <QDialog>
-#include "ui_stats.h"
+#include <QDialog>                    // for QDialog
+#include <QString>                    // for QString
+#include "ui_stats.h"                   // for StatsDialog
 
-class Project;
 class CheckStatistics;
+class Project;
+class QWidget;
 
 /// @addtogroup GUI
 /// @{

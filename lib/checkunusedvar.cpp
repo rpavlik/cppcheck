@@ -17,9 +17,20 @@
  */
 
 
+#include <stddef.h>                     // for NULL
+#include <list>                         // for list, _List_iterator, etc
+#include <map>                          // for _Rb_tree_const_iterator, etc
+#include <set>                          // for set, set<>::iterator
+#include <utility>                      // for make_pair, pair
+#include <vector>                       // for vector
+
 //---------------------------------------------------------------------------
 #include "checkunusedvar.h"
-#include "symboldatabase.h"
+#include "errorlogger.h"                // for Severity, etc
+#include "settings.h"                   // for Settings
+#include "symboldatabase.h"             // for Scope, Variable, etc
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 //---------------------------------------------------------------------------
 

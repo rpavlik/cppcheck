@@ -19,8 +19,9 @@
 #ifndef LOGVIEW_H
 #define LOGVIEW_H
 
-#include <QWidget>
-#include "ui_logview.h"
+#include <QString>                    // for QString
+#include <QWidget>                    // for QWidget
+#include "ui_logview.h"                 // for LogView
 
 /// @addtogroup GUI
 /// @{

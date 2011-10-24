@@ -19,11 +19,11 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
-#include <QObject>
-#include <QString>
+#include <QObject>                    // for QObject
+#include <QString>                    // for QString
 
-class QWidget;
 class ProjectFile;
+class QWidget;
 
 /// @addtogroup GUI
 /// @{

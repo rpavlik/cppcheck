@@ -19,9 +19,10 @@
 #ifndef CHECKSTATISTICS_H
 #define CHECKSTATISTICS_H
 
-#include <QObject>
-#include "common.h"
-#include "showtypes.h"
+#include <stddef.h>                     // for NULL
+#include <QObject>                      // for QObject
+
+#include "showtypes.h"                  // for ShowTypes, etc
 
 /// @addtogroup GUI
 /// @{

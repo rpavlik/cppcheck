@@ -19,14 +19,14 @@
 #ifndef CPPCHECK_H
 #define CPPCHECK_H
 
-#include "settings.h"
-#include "errorlogger.h"
-#include "checkunusedfunctions.h"
-
-#include <string>
-#include <list>
-#include <sstream>
+#include <list>                         // for list
+#include <sstream>                      // for istream, ostringstream
+#include <string>                       // for string
 #include <vector>
+
+#include "checkunusedfunctions.h"       // for CheckUnusedFunctions
+#include "errorlogger.h"                // for ErrorLogger
+#include "settings.h"                   // for Settings
 
 /// @addtogroup Core
 /// @{

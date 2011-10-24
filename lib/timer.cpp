@@ -15,7 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <iostream>
+#include <sys/time.h>                   // for CLOCKS_PER_SEC
+#include <iostream>                     // for operator<<, basic_ostream, etc
+#include <utility>                      // for pair
+
 #include "timer.h"
 
 /*

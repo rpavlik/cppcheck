@@ -16,10 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QObject>
-#include <QString>
-#include <QFile>
-#include "erroritem.h"
+#include <QIODevice>                  // for QIODevice, etc
 #include "report.h"
 
 Report::Report(const QString &filename, QObject * parent) :

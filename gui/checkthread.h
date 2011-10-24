@@ -20,10 +20,14 @@
 #ifndef CHECKTHREAD_H
 #define CHECKTHREAD_H
 
-#include <QThread>
-#include "cppcheck.h"
+#include "cppcheck.h"                   // for CppCheck
+#include <QString>                    // for QString
+#include <QThread>                    // for QThread
 #include "settings.h"
 #include "threadresult.h"
+
+class Settings;
+class ThreadResult;
 
 /// @addtogroup GUI
 /// @{

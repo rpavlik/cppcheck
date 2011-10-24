@@ -20,13 +20,14 @@
 #ifndef SETTINGSDIALOG_H
 #define SETTINGSDIALOG_H
 
-#include <QDialog>
-#include <QKeyEvent>
-#include "ui_settings.h"
+#include <QDialog>                    // for QDialog
+#include <QString>                    // for QString
+#include "ui_settings.h"                // for Settings
 
+class ApplicationList;
+class QCheckBox;
 class QSettings;
 class QWidget;
-class ApplicationList;
 class TranslationHandler;
 
 /// @addtogroup GUI

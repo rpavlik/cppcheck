@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "settings.h"
-#include "path.h"
+#include <stddef.h>                     // for size_t
+#include <fstream>                      // for basic_istream, ifstream
+#include <set>                          // for set, etc
 
-#include <fstream>
-#include <set>
-#include <stack>
+#include "settings.h"
 
 Settings::Settings()
 {

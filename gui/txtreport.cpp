@@ -16,10 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QDir>
-#include <QFile>
-#include <QTextStream>
+#include <QDir>                       // for QDir
+#include "qfile.h"                      // for QFile
+#include <QList>                      // for QList
+#include <QStringList>                // for QStringList
 #include "txtreport.h"
+
+class QObject;
 
 TxtReport::TxtReport(const QString &filename, QObject * parent) :
     Report(filename, parent)

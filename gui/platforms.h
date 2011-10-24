@@ -19,11 +19,15 @@
 #ifndef PLATFORMS_H
 #define PLATFORMS_H
 
-#include <QObject>
-#include <QString>
-#include <QList>
-#include <QAction>
-#include "settings.h"
+#include <stddef.h>                     // for NULL
+
+#include <QList>                      // for QList
+#include <QObject>                    // for QObject
+#include <QString>                    // for QString
+
+#include "settings.h"                   // for Settings, etc
+
+class QAction;
 
 /// @addtogroup GUI
 /// @{

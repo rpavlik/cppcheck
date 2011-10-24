@@ -19,9 +19,10 @@
 #ifndef ABOUT_DIALOG_H
 #define ABOUT_DIALOG_H
 
-#include <QDialog>
-#include <QString>
-#include "ui_about.h"
+#include <QDialog>                    // for QDialog
+#include <QString>                    // for QString
+
+#include "ui_about.h"                   // for About
 
 class QWidget;
 

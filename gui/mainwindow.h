@@ -19,28 +19,31 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QSettings>
-#include <QFileDialog>
-#include <QSignalMapper>
-#include <QActionGroup>
-#include <QTimer>
-#include <QToolBar>
-#include <QStringList>
+#include <QFileDialog>                  // for QFileDialog, etc
+#include <QMainWindow>                  // for QMainWindow
+#include <QString>                      // for QString
+#include <QStringList>                  // for QStringList
 
+#include "erroritem.h"                  // for ErrorItem
+#include "platforms.h"                  // for Platforms
 #include "resultsview.h"
+#include "settings.h"                   // for Settings
 #include "settingsdialog.h"
 #include "translationhandler.h"
-#include "settings.h"
-#include "platforms.h"
-#include "ui_main.h"
+#include "ui_main.h"                    // for MainWindow
 
-class ThreadHandler;
+class ApplicationList;
+class ErrorItem;
 class LogView;
 class Project;
-class ErrorItem;
-class StatsDialog;
 class QAction;
+class QCloseEvent;
+class QLineEdit;
+class QSettings;
+class QTimer;
+class StatsDialog;
+class ThreadHandler;
+class TranslationHandler;
 
 /// @addtogroup GUI
 /// @{

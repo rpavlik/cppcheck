@@ -21,7 +21,11 @@
 //---------------------------------------------------------------------------
 
 #include "checkobsoletefunctions.h"
-#include "symboldatabase.h"
+#include "settings.h"                   // for Settings
+#include "standards.h"                  // for Standards
+#include "symboldatabase.h"             // for Function, SymbolDatabase
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 
 //---------------------------------------------------------------------------
 

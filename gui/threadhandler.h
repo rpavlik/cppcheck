@@ -20,14 +20,17 @@
 #ifndef THREADHANDLER_H
 #define THREADHANDLER_H
 
-#include <QObject>
-#include <QStringList>
-#include <QTime>
-#include "settings.h"
-#include "cppcheck.h"
-#include "threadresult.h"
-#include "checkthread.h"
-#include "resultsview.h"
+#include <QDateTime>                  // for QTime
+#include <QList>                      // for QList
+#include <QObject>                    // for QObject
+#include <QStringList>                // for QStringList
+
+#include "threadresult.h"               // for ThreadResult
+
+class CheckThread;
+class QSettings;
+class ResultsView;
+class Settings;
 
 /// @addtogroup GUI
 /// @{

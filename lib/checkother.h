@@ -22,10 +22,17 @@
 #define CheckOtherH
 //---------------------------------------------------------------------------
 
-#include "check.h"
-#include "settings.h"
+#include <stddef.h>                     // for NULL
+#include <string>                       // for string
 
+#include "check.h"                      // for Check
+#include "settings.h"
+#include "token.h"                      // for Token
+
+class ErrorLogger;
+class Settings;
 class Token;
+class Tokenizer;
 
 /// @addtogroup Checks
 /// @{

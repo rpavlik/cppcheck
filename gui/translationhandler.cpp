@@ -16,10 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QApplication>
-#include <QFile>
-#include <QDebug>
-#include <QLocale>
+#include <QApplication>               // for QApplication, qApp
+#include <QDebug>                     // for qDebug, QDebug
+#include "qfile.h"                      // for QFile
+#include "qglobal.h"                    // for QT_TRANSLATE_NOOP, foreach
+#include "qlocale.h"                    // for QLocale
+#include "qtranslator.h"                // for QTranslator
 #include "translationhandler.h"
 
 TranslationHandler::TranslationHandler(QObject *parent) :

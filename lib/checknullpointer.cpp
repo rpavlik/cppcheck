@@ -17,12 +17,19 @@
  */
 
 
+#include <stddef.h>                     // for NULL
+#include <cctype>                       // for isalpha
+#include <set>                          // for set, etc
+
 //---------------------------------------------------------------------------
 #include "checknullpointer.h"
-#include "executionpath.h"
-#include "mathlib.h"
-#include "symboldatabase.h"
-#include <cctype>
+#include "errorlogger.h"                // for Severity, etc
+#include "executionpath.h"              // for ExecutionPath, etc
+#include "mathlib.h"                    // for MathLib
+#include "settings.h"                   // for Settings
+#include "symboldatabase.h"             // for Variable, SymbolDatabase
+#include "token.h"                      // for Token
+#include "tokenize.h"                   // for Tokenizer
 //---------------------------------------------------------------------------
 
 // Register this check class (by creating a static instance of it)

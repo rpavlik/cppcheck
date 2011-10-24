@@ -16,27 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QDebug>
-#include <QFile>
-#include <QMessageBox>
-#include <QStandardItemModel>
-#include <QStandardItem>
-#include <QVariant>
-#include <QString>
-#include <QModelIndex>
-#include <QSettings>
-#include "common.h"
-#include "erroritem.h"
+#include <stddef.h>                     // for NULL
+
+#include <QAbstractItemModel>         // for QAbstractItemModel, etc
+#include <QByteArray>                 // for QByteArray
+#include <QList>                      // for QList, etc
+#include <QMessageBox>                // for QMessageBox, etc
+#include <QObject>                    // for qobject_cast
+#include <QProgressBar>               // for QProgressBar
+#include <QSettings>                  // for QSettings
+#include <QSplitter>                  // for QSplitter
+#include <QStandardItemModel>         // for QStandardItem, etc
+#include <QTextEdit>                  // for QTextEdit
+#include <QVariant>                   // for QVariant, QVariantMap
+
+#include "checkstatistics.h"            // for CheckStatistics
+#include "common.h"                     // for PROGRESS_MAX, etc
+#include "csvreport.h"                  // for CsvReport
+#include "erroritem.h"                  // for ErrorItem
+#include "report.h"                     // for Report, Report::Type, etc
+#include "resultstree.h"                // for ResultsTree
 #include "resultsview.h"
-#include "resultstree.h"
-#include "report.h"
-#include "txtreport.h"
-#include "xmlreport.h"
-#include "xmlreportv1.h"
-#include "xmlreportv2.h"
-#include "csvreport.h"
-#include "applicationlist.h"
-#include "checkstatistics.h"
+#include "txtreport.h"                  // for TxtReport
+#include "xmlreport.h"                  // for XmlReport
+#include "xmlreportv1.h"                // for XmlReportV1
+#include "xmlreportv2.h"                // for XmlReportV2
 
 ResultsView::ResultsView(QWidget * parent) :
     QWidget(parent),

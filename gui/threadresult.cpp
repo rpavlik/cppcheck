@@ -16,15 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QFile>
-#include <QString>
-#include <QMutexLocker>
-#include <QList>
-#include <QStringList>
-#include <QDebug>
-#include "common.h"
-#include "erroritem.h"
-#include "errorlogger.h"
+#include <list>                         // for _List_const_iterator, list, etc
+
+#include "common.h"                     // for PROGRESS_MAX
+#include "erroritem.h"                  // for ErrorItem
+#include "errorlogger.h"                // for ErrorLogger::ErrorMessage, etc
+#include "qatomic_x86_64.h"             // for QBasicAtomicInt::deref, etc
+#include "qfile.h"                      // for QFile
+#include <QList>                      // for QList, etc
 #include "threadresult.h"
 
 ThreadResult::ThreadResult() : mMaxProgress(0), mProgress(0), mFilesChecked(0), mTotalFiles(0)

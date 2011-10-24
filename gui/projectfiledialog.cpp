@@ -16,17 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QWidget>
-#include <QDialog>
-#include <QString>
-#include <QStringList>
-#include <QFileInfo>
-#include <QFileDialog>
-#include <QLineEdit>
-#include <QDir>
-#include <QSettings>
 #include "common.h"
 #include "projectfiledialog.h"
+#include <QDialogButtonBox>           // for QDialogButtonBox
+#include <QDir>                       // for QDir
+#include <QFileDialog>                // for QFileDialog
+#include <QFileInfo>                  // for QFileInfo
+#include <QLineEdit>                  // for QLineEdit
+#include <QList>                      // for QList<>::const_iterator
+#include <QListWidget>                // for QListWidget, etc
+#include <QPushButton>                // for QPushButton
+#include <QSettings>                  // for QSettings
+#include <QSize>                      // for QSize
+#include <QVariant>                   // for QVariant
 
 ProjectFileDialog::ProjectFileDialog(const QString &path, QWidget *parent)
     : QDialog(parent)

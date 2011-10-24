@@ -21,20 +21,20 @@
 #define SymbolDatabaseH
 //---------------------------------------------------------------------------
 
-#include <string>
-#include <list>
-#include <vector>
-#include <set>
+#include <stddef.h>                     // for NULL, size_t
+#include <list>                         // for list
+#include <set>                          // for set, etc
+#include <string>                       // for string, operator<
+#include <vector>                       // for vector
 
-#include "token.h"
-#include "mathlib.h"
+#include "mathlib.h"                    // for MathLib, MathLib::bigint
+#include "token.h"                      // for Token
 
-class Tokenizer;
-class Settings;
 class ErrorLogger;
-
 class Scope;
+class Settings;
 class SymbolDatabase;
+class Tokenizer;
 
 /**
  * @brief Access control enumerations.

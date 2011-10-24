@@ -22,7 +22,14 @@
 #define CheckPostfixOperatorH
 //---------------------------------------------------------------------------
 
-#include "check.h"
+#include <string>                       // for string
+
+#include "check.h"                      // for Check
+
+class ErrorLogger;
+class Settings;
+class Token;
+class Tokenizer;
 
 /// @addtogroup Checks
 /// @{

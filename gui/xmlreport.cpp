@@ -16,11 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QObject>
-#include <QString>
-#include <QFile>
-#include <QXmlStreamReader>
-#include "report.h"
+#include "qfile.h"                      // for QFile
+#include "qglobal.h"                    // for operator|
+#include "qiodevice.h"                  // for QIODevice, etc
+#include "qxmlstream.h"                 // for QXmlStreamReader, etc
 #include "xmlreport.h"
 
 static const char ResultElementName[] = "results";
